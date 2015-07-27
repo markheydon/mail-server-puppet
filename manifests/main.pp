@@ -1,5 +1,5 @@
 if $::vm_type == "vagrant" {
-#	import "config.pp"
+	import "config.pp"
 }
 
 class packages {
@@ -7,10 +7,17 @@ class packages {
 	# nginx (www)
 	package { "apache2": 		ensure => absent }
 	->
+	exec { "autoremove" :
+	    user        => "root",
+        path        => ["/usr/bin/","/usr/sbin/","/bin"],
+	    command     => "sudo apt-get autoremove --purge -y",
+	    refreshonly => true
+	}
+	->
 	package { "nginx": 			ensure => present }
 	->
 	package { "apache2-utils": 	ensure => present }
-	
+
 	# php
 	package { "php5-fpm": 		ensure => present }
 	package { "php-apc": 		ensure => present, require => Package["php5-fpm"], }
@@ -21,20 +28,23 @@ class packages {
 	package { "php-xml-parser": ensure => present, require => Package["php5-fpm"], }
 	package { "php5-mysql": 	ensure => present, require => Package["php5-fpm"], }
 	package { "php5-imap": 		ensure => present, require => Package["php5-fpm"], }
-	
-	package { "mariadb-client": ensure => absent }
-	package { "mariadb-server": ensure => present }
+
+	#package { "mariadb-client": ensure => absent }
+	#package { "mariadb-server": ensure => present }
+
+	package { "mysql-server":   ensure => present }
+    package { "mysql-client":   ensure => present }
 
 	# postfix (smtp)
 	package { "postfix": 		ensure => present }
 	package { "postfix-mysql": 	ensure => present }
-	
+
 	package { "postgrey": 		ensure => present }
 	package { "amavis": 		ensure => present }
 	package { "clamav": 		ensure => present }
 	package { "clamav-daemon": 	ensure => present }
 	package { "spamassassin": 	ensure => present }
-	
+
 	# Random stuff needed by spam/virtus scanners
 	package { "pyzor": 			ensure => present }
 	package { "razor": 			ensure => present }
@@ -50,8 +60,8 @@ class packages {
 	package { "unrar-free": 	ensure => present }
 	package { "zip": 			ensure => present }
 	package { "zoo": 			ensure => present }
-	
-	
+
+
 	# Dovecot (imap)
 	package { "dovecot-core": 			ensure => present }
 	package { "dovecot-imapd": 			ensure => present }
@@ -70,23 +80,28 @@ class packages {
 	package { "rsyslog": 		ensure => present }
 	package { "openssh-server": ensure => present }
 	package { "sudo": 			ensure => present }
-	
+
 	# Roundcube
-	
-	package { "roundcube": 					ensure => present }
-	package { "roundcube-mysql": 			ensure => present }
-	package { "roundcube-plugins": 			ensure => present }
-	package { "roundcube-plugins-extra": 	ensure => present }
-	
+
+	#package { "roundcube": 					ensure => present }
+	#package { "roundcube-mysql": 			ensure => present }
+	#package { "roundcube-plugins": 			ensure => present }
+	#package { "roundcube-plugins-extra": 	ensure => present }
+
+	# Rainloop
+
+	#package { "rainloop": 					ensure => present }
+	#package { "rainloop-mysql": 			ensure => present }
+
 	# DKIM
 	package { "opendkim":		ensure => present }
 	package { "opendkim-tools":	ensure => present }
-	
+
 	# Update before
 	exec { "apt-update":
 		command => "/usr/bin/apt-get update"
 	}
-	Exec["apt-update"]	-> Package <| |>
+	#Exec["apt-update"]	-> Package <| |>
 }
 class services {
 	service { "nginx":
@@ -102,7 +117,7 @@ class services {
 	service { "mysql":
 		ensure  => "running",
 		enable  => "true",
-		require => Package["mariadb-server"],
+		require => Package["mysql-server"],
 	}
 	service { "dovecot":
 		ensure  => "running",
@@ -144,7 +159,7 @@ class services {
 		enable  => "true",
 		require => Package["rsyslog"],
 	}
-	
+
 }
 class swap {
 	exec { 'Create swap file':
@@ -190,7 +205,7 @@ class config_host {
 		ip           => '127.0.0.1',
 		host_aliases => "$alias",
 	}
-	
+
 	file_line { "ssh: disable root lgin":
 		path    => '/etc/php5/fpm/php.ini',
 		line    => 'set PermitRootLogin no',
@@ -241,7 +256,7 @@ class make_certificate {
 	$generate_certificate = $config::generate_certificate
 	$files = $config::files
 	if $generate_certificate == "true" {
-		exec { "apt-update":
+		exec { "make-ssl-cert":
 			command   => "/usr/sbin/make-ssl-cert generate-default-snakeoil --force-overwrite",
 			creates   => [ "/etc/ssl/certs/ssl-cert-snakeoil.pem", "/etc/ssl/private/ssl-cert-snakeoil.key" ],
 			require   => Package["ssl-cert"],
@@ -275,11 +290,11 @@ class nginx_config {
 		require	=> Package["nginx"],
 		notify  => Service["nginx"],
 	}
-	
+
 
 
 }
-class memcahe_config {
+class memcache_config {
 	include config
 
 	$memcache_memory = $config::memcache_memory
@@ -299,11 +314,11 @@ class configure_maildb {
 	$maildb_user 	= $config::maildb_user
 	$maildb_pwd 	= $config::maildb_pwd
 	$maildb_name 	= $config::maildb_name
-	
+
 	Exec {
 		logoutput => "on_failure",
 	}
-	
+
 	exec { "create-${maildb_name}-db":
 		unless  => "/usr/bin/mysql -uroot ${maildb_name}",
 		command => "/usr/bin/mysql -uroot -e \"create database ${maildb_name}\"",
@@ -327,7 +342,7 @@ class configure_webadmin {
 	$maildb_user 		= $config::maildb_user
 	$maildb_pwd 		= $config::maildb_pwd
 	$maildb_name 		= $config::maildb_name
-	
+
 	$mailadmin_user 	= $config::mailadmin_user
 	$mailadmin_pwd 		= $config::mailadmin_pwd
 
@@ -462,7 +477,7 @@ class configure_webadmin {
 		command => "/etc/init.d/nginx reload",
 		refreshonly => true,
 		require => Service[[nginx]],
-	} -> 
+	} ->
 	exec { "configure admin":
 		command  => "/usr/bin/curl --insecure --data 'salt=${vimbadmin_salt1}&username=${mailadmin_user}&password=${mailadmin_pwd}' https://127.0.0.1:444/auth/setup --max-time 10",
 		onlyif   => "/usr/bin/test \"`/usr/bin/mysql --raw -uroot $maildb_name -e 'select count(1) from admin' --batch -s`\" == \"0\"",
@@ -520,14 +535,14 @@ class restore_maildb_backup {
 
 class configure_mail {
 	include config
-	
+
 	$maildb_user 		= $config::maildb_user
 	$maildb_pwd 		= $config::maildb_pwd
 	$maildb_name 		= $config::maildb_name
-	
+
 	$certificate 		= $config::certificate
 	$certificate_key 	= $config::certificate_key
-	
+
 	$mailadmin_user 	= $config::mailadmin_user
 	$mailadmin_pwd 		= $config::mailadmin_pwd
 
@@ -537,7 +552,7 @@ class configure_mail {
 		require	=> Package["rsyslog"],
 		notify  => Service["rsyslog"],
 	}
-	
+
 	group { "mail":
 		ensure => present,
 	}
@@ -655,13 +670,13 @@ class configure_mail {
 		require => Package["dovecot-core"],
 		notify  => Service["dovecot"],
 	}
-#	file_line { 'dovecot: ssl_ca':
-#		path  => '/etc/dovecot/conf.d/10-ssl.conf',
-#		line  => "ssl_ca = </etc/ssl/certs/ca-bundle.crt",
-#		match => '^[# ]*ssl_ca *=.*$',
-#		require => Package["dovecot-core"],
-#		notify  => Service["dovecot"],
-#	}
+	#	file_line { 'dovecot: ssl_ca':
+	#		path  => '/etc/dovecot/conf.d/10-ssl.conf',
+	#		line  => "ssl_ca = </etc/ssl/certs/ca-bundle.crt",
+	#		match => '^[# ]*ssl_ca *=.*$',
+	#		require => Package["dovecot-core"],
+	#		notify  => Service["dovecot"],
+	#	}
 	file { "/etc/dovecot/conf.d/10-master.conf":
 		ensure	=> present,
 		content	=> template("10-master.conf.erb"),
@@ -675,7 +690,7 @@ class configure_mail {
 		require   => Package["apache2-utils"],
 		creates   => "/etc/dovecot/master-users",
 	}
-	
+
 }
 class chown_dovecot_config {
 	Exec {
@@ -800,7 +815,7 @@ class configure_postfix {
 		require	=> Package[postfix],
 		notify  => Service["postfix"],
 	}
-	
+
 }
 
 class roundcube {
@@ -811,7 +826,7 @@ class roundcube {
 	$roundcube_pwd  = $config::roundcube_pwd
 
 	$roundcube_conf = '/etc/roundcube/main.inc.php'
-	
+
 	exec { "create-${roundcube_name}-db":
 		unless  => "/usr/bin/mysql -uroot ${roundcube_name}",
 		command => "/usr/bin/mysql -uroot -e \"create database ${roundcube_name}\"",
@@ -830,7 +845,7 @@ class roundcube {
 		require => [ Service["mysql"],  Package["roundcube"] ],
 		logoutput => "on_failure",
 	}
-	
+
 	file_line { 'roundcube: dbuser':
 		path  => "/etc/roundcube/debian-db.php",
 		line  => "\$dbuser='$roundcube_user';",
@@ -892,9 +907,69 @@ class roundcube {
 		require => Package["php5-fpm"]
 	}
 }
+
+class rainloop {
+	include config
+
+	$rainloop_user = $config::rainloop_user
+	$rainloop_name = $config::rainloop_name
+	$rainloop_pwd  = $config::rainloop_pwd
+
+	exec { "create-${rainloop_name}-db":
+		unless  => "/usr/bin/mysql -uroot ${rainloop_name}",
+		command => "/usr/bin/mysql -uroot -e \"create database ${rainloop_name}\"",
+		require => Service["mysql"],
+		logoutput => "on_failure",
+	}->
+	exec { "create-${rainloop_user}-db-user":
+		unless  => "/usr/bin/mysql -u${rainloop_user} -p'${rainloop_pwd}' ${rainloop_name} -e \"quit\"",
+		command => "/usr/bin/mysql -uroot -e \"grant all on ${rainloop_name}.* to '${rainloop_user}'@'localhost' identified by '$rainloop_pwd';\"",
+		require => Service["mysql"],
+		logoutput => "on_failure",
+	}
+
+    # Create Directories
+	file { [
+		"/var/www",
+    	"/var/www/rainloop/",
+        "/var/www/rainloop/logs",
+		"/var/www/rainloop/www" ] :
+		ensure => directory,
+		before => File[
+			"/var/www/rainloop/www/installer.php"
+		]
+	}
+
+	file { "/var/www/rainloop/www/installer.php":
+		ensure	=> present,
+		content	=> template("installer.php"),
+		before => Exec[
+			"install-rainloop"
+		]
+	}
+
+	exec { "install-rainloop":
+		cwd => "/var/www/rainloop/www",
+		command => "/usr/bin/php installer.php",
+		logoutput => "on_failure",
+	}
+}
+
+class ajenti {
+	include config
+
+	$ajenti_user = $config::ajenti_user
+	$ajenti_pwd  = $config::ajenti_pwd
+
+	exec { "install-ajenti":
+		command => "/usr/bin/wget -O- https://raw.github.com/Eugeny/ajenti/master/scripts/install-ubuntu.sh | sudo sh",
+		logoutput => "on_failure",
+	}
+}
+
 class backup_user {
 	include config
-	
+
 	$backup_user_allowed_key = $config::backup_user_allowed_key
 
 	$maildb_user 	= $config::maildb_user
@@ -920,9 +995,9 @@ class backup_user {
         mode    => 770,
 		require => User[backup],
     }
-	
+
 	if $backup_user_allowed_key == "" {
-		ssh_keygen { 'vmail': 
+		ssh_keygen { 'vmail':
 			home => '/var/vmail'
 		}
 		ssh_keygen { 'backup': }
@@ -940,7 +1015,7 @@ class backup_user {
 			content		=> $backup_user_allowed_key
 		}
 	}
-	
+
 	file { "/etc/sudoers.d/backup-user":
 		ensure		=> present,
 		owner 		=> 'root',
@@ -972,13 +1047,18 @@ include swap
 include make_certificate
 include packages
 include services
-include memcahe_config
+include memcache_config
 include nginx_config
 include configure_spamav
 include configure_postfix
+
 include config_firewall
+
 include config_php
-include roundcube
+#include roundcube
+include rainloop
+include ajenti
+
 include backup_user
 
 class {'configure_maildb':}

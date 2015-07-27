@@ -8,7 +8,8 @@ server {
 	listen 443;
 	server_name <%= @mail_server_name %>;
 
-	root /usr/share/roundcube;
+	#root /usr/share/roundcube;
+	root /var/www/rainloop/www;
 	index index.php;
 
 	index index.html index.htm;
