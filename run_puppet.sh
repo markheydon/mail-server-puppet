@@ -1,2 +1,2 @@
 #!/bin/sh
-sudo puppet apply  --modulepath=/usr/share/puppet/modules:./modules --templatedir templates manifests
+sudo puppet apply  --modulepath=/etc/puppet/modules:/usr/share/puppet/modules:./modules --templatedir templates manifests

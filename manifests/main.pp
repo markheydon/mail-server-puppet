@@ -1,6 +1,55 @@
-if $::vm_type == "vagrant" {
-	import "config.pp"
+
+class config {
+	$mail_server_name = "semel.co"
+	$generate_certificate = "true"
+
+	$files = "./files"
+
+	if $generate_certificate == "true" {
+		$certificate = "ssl-cert-snakeoil.pem"
+		$certificate_key = "ssl-cert-snakeoil.key"
+	} else {
+		$certificate = "my-seed-cert.pem"
+		$certificate_key = "my-seed-cert.key"
+	}
+
+	$maildb_user = 'mail'
+	$maildb_name = 'mail'
+	$maildb_pwd = get_password("/root/passwords/.mail.pwd")
+
+	$mailadmin_user = "admin@$mail_server_name"
+	$mailadmin_pwd = get_password("/root/passwords/.mailadmin.pwd")
+
+	$roundcube_user = 'roundcube'
+	$roundcube_name = 'roundcube'
+	$roundcube_pwd = get_password("/root/passwords/.roundcube.pwd")
+
+	$rainloop_user = 'rainloop'
+	$rainloop_name = 'rainloop'
+	$rainloop_pwd = get_password("/root/passwords/.rainloop.pwd")
+
+	$ajenti_user = 'root'
+	$ajenti_pwd  = get_password("/root/passwords/.ajenti.pwd")
+
+	$vimbadmin_salt1 = get_password("/root/passwords/.vimbadmin_salt1.pwd", 64)
+	$vimbadmin_salt2 = get_password("/root/passwords/.vimbadmin_salt2.pwd", 64)
+	$vimbadmin_salt3 = get_password("/root/passwords/.vimbadmin_salt3.pwd", 64)
+
+	$restore_maildb_backup = "false"
+	#
+	# Number of processors to use for amavis (less means less memory, more means more emails at a time)
+	#
+	$amavis_process_count = 3
+
+	#
+	# Maximum allowed email size.
+	#
+	$message_size_limit = 10240000
+
+
+	$backup_user_allowed_key = ""
 }
+
 
 class packages {
 
@@ -22,7 +71,6 @@ class packages {
 	package { "php5-fpm": 		ensure => present }
 	package { "php-apc": 		ensure => present, require => Package["php5-fpm"], }
 	package { "php5-mcrypt": 	ensure => present, require => Package["php5-fpm"], }
-	package { "php5-memcache": 	ensure => present, require => Package["php5-fpm"], }
 	package { "php5-curl": 		ensure => present, require => Package["php5-fpm"], }
 	package { "php5-gd": 		ensure => present, require => Package["php5-fpm"], }
 	package { "php-xml-parser": ensure => present, require => Package["php5-fpm"], }
@@ -73,25 +121,10 @@ class packages {
 	# ssl helpers to make dummy certs
 	package { "ssl-cert": 		ensure => present }
 
-	# mem cache (used by roundcube)
-	package { "memcached": 		ensure => present }
-
 	package { "git-core": 		ensure => present }
 	package { "rsyslog": 		ensure => present }
 	package { "openssh-server": ensure => present }
 	package { "sudo": 			ensure => present }
-
-	# Roundcube
-
-	#package { "roundcube": 					ensure => present }
-	#package { "roundcube-mysql": 			ensure => present }
-	#package { "roundcube-plugins": 			ensure => present }
-	#package { "roundcube-plugins-extra": 	ensure => present }
-
-	# Rainloop
-
-	#package { "rainloop": 					ensure => present }
-	#package { "rainloop-mysql": 			ensure => present }
 
 	# DKIM
 	package { "opendkim":		ensure => present }
@@ -108,11 +141,6 @@ class services {
 		ensure  => "running",
 		enable  => "true",
 		require => Package["nginx"],
-	}
-	service { "memcached":
-		ensure  => "running",
-		enable  => "true",
-		require => Package["memcached"],
 	}
 	service { "mysql":
 		ensure  => "running",
@@ -206,13 +234,13 @@ class config_host {
 		host_aliases => "$alias",
 	}
 
-	file_line { "ssh: disable root lgin":
-		path    => '/etc/php5/fpm/php.ini',
-		line    => 'set PermitRootLogin no',
-		match   => '^.*set PermitRootLogin .*$',
-		notify  => Service["ssh"],
-		require => Package['openssh-server'],
-	}
+#	file_line { "ssh: disable root lgin":
+#		path    => '/etc/php5/fpm/php.ini',
+#		line    => 'set PermitRootLogin no',
+#		match   => '^.*set PermitRootLogin .*$',
+#		notify  => Service["ssh"],
+#		require => Package['openssh-server'],
+#	}
 }
 
 class config_firewall {
@@ -244,6 +272,7 @@ class config_firewall {
 }
 
 class config_php {
+	include stdlib
 	file_line { 'fix_pathinfo php security':
 	  path    => '/etc/php5/fpm/php.ini',
 	  line    => 'fix_pathinfo=0',
@@ -294,19 +323,6 @@ class nginx_config {
 
 
 }
-class memcache_config {
-	include config
-
-	$memcache_memory = $config::memcache_memory
-
-	file_line { 'memcached memory':
-	  path  => '/etc/memcached.conf',
-	  line  => "-m $memcache_memory",
-	  match => '^-m .*$',
-	  require => Package['memcached'],
-		notify  => Service["memcached"],
-	}
-}
 
 class configure_maildb {
 	include config
@@ -335,6 +351,7 @@ class configure_maildb {
 
 class configure_webadmin {
 	include config
+	include stdlib
 	$vimbadmin_salt1 	= $config::vimbadmin_salt1
 	$vimbadmin_salt2 	= $config::vimbadmin_salt2
 	$vimbadmin_salt3 	= $config::vimbadmin_salt3
@@ -535,6 +552,7 @@ class restore_maildb_backup {
 
 class configure_mail {
 	include config
+	include stdlib
 
 	$maildb_user 		= $config::maildb_user
 	$maildb_pwd 		= $config::maildb_pwd
@@ -706,6 +724,7 @@ class chown_dovecot_config {
 
 class configure_spamav {
 	include config
+	include stdlib
 
 	$maildb_user 			= $config::maildb_user
 	$maildb_pwd 			= $config::maildb_pwd
@@ -816,96 +835,6 @@ class configure_postfix {
 		notify  => Service["postfix"],
 	}
 
-}
-
-class roundcube {
-	include config
-
-	$roundcube_user = $config::roundcube_user
-	$roundcube_name = $config::roundcube_name
-	$roundcube_pwd  = $config::roundcube_pwd
-
-	$roundcube_conf = '/etc/roundcube/main.inc.php'
-
-	exec { "create-${roundcube_name}-db":
-		unless  => "/usr/bin/mysql -uroot ${roundcube_name}",
-		command => "/usr/bin/mysql -uroot -e \"create database ${roundcube_name}\"",
-		require => Service["mysql"],
-		logoutput => "on_failure",
-	}->
-	exec { "create-${roundcube_user}-db-user":
-		unless  => "/usr/bin/mysql -u${roundcube_user} -p'${roundcube_pwd}' ${roundcube_name} -e \"quit\"",
-		command => "/usr/bin/mysql -uroot -e \"grant all on ${roundcube_name}.* to '${roundcube_user}'@'localhost' identified by '$roundcube_pwd';\"",
-		require => Service["mysql"],
-		logoutput => "on_failure",
-	} ->
-	exec { "create-${roundcube_user}-db-tables":
-		unless  => "/usr/bin/mysql -u${roundcube_user} -p'${roundcube_pwd}' ${roundcube_name} -e \"select 1 from users\"",
-		command => "/usr/bin/mysql -u${roundcube_user} -p'${roundcube_pwd}' ${roundcube_name} < /usr/share/dbconfig-common/data/roundcube/install/mysql",
-		require => [ Service["mysql"],  Package["roundcube"] ],
-		logoutput => "on_failure",
-	}
-
-	file_line { 'roundcube: dbuser':
-		path  => "/etc/roundcube/debian-db.php",
-		line  => "\$dbuser='$roundcube_user';",
-		match => '.*dbuser.*=.*$',
-		require => Package["roundcube"]
-	}
-	file_line { 'roundcube: dbpass':
-		path  => "/etc/roundcube/debian-db.php",
-		line  => "\$dbpass='$roundcube_pwd';",
-		match => '.*dbpass.*=.*$',
-		require => Package["roundcube"]
-	}
-	file_line { 'roundcube: dbname':
-		path  => "/etc/roundcube/debian-db.php",
-		line  => "\$dbname='$roundcube_name';",
-		match => '.*dbname.*=.*$',
-		require => Package["roundcube"]
-	}
-	file_line { 'roundcube: default_host':
-		path  => "$roundcube_conf",
-		line  => "\$rcmail_config['default_host'] = 'localhost';",
-		match => '.*rcmail_config.*default_host.*=.*$',
-		require => Package["roundcube"]
-	}
-	file_line { 'roundcube: force_https':
-		path  => "$roundcube_conf",
-		line  => "\$rcmail_config['force_https'] = 'true';",
-		match => '.*rcmail_config.*force_https.*=.*$',
-		require => Package["roundcube"]
-	}
-	file_line { 'roundcube: imap_cache':
-		path  => "$roundcube_conf",
-		line  => "\$rcmail_config['imap_cache'] = 'memcache';",
-		match => '.*rcmail_config.*imap_cache.*=.*$',
-		require => Package["roundcube"]
-	}
-	file_line { 'roundcube: session_storage':
-		path  => "$roundcube_conf",
-		line  => "\$rcmail_config['session_storage'] = 'memcache';",
-		match => '.*rcmail_config.*session_storage.*=.*$',
-		require => Package["roundcube"]
-	}
-	file_line { 'roundcube: memcache_hosts':
-		path  => "$roundcube_conf",
-		line  => "\$rcmail_config['memcache_hosts'] = array( 'localhost:11211' );",
-		match => '.*rcmail_config.*memcache_hosts.*=.*$',
-		require => Package["roundcube"]
-	}
-	file_line { 'roundcube: plugins':
-		path  => "$roundcube_conf",
-		line  => "\$rcmail_config['plugins'] = array('managesieve');",
-		match => '.*rcmail_config.*plugins.*=.*$',
-		require => Package["roundcube"]
-	}
-	file { "/etc/php5/fpm/conf.d/20-mcrypt.ini":
-		ensure	=> link,
-		target  => "/etc/php5/mods-available/mcrypt.ini",
-		notify  => Service["php5-fpm"],
-		require => Package["php5-fpm"]
-	}
 }
 
 class rainloop {
@@ -1047,7 +976,6 @@ include swap
 include make_certificate
 include packages
 include services
-include memcache_config
 include nginx_config
 include configure_spamav
 include configure_postfix
@@ -1055,7 +983,6 @@ include configure_postfix
 include config_firewall
 
 include config_php
-#include roundcube
 include rainloop
 include ajenti
 
