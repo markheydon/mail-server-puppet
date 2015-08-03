@@ -1,16 +1,17 @@
 
 class config {
 	$mail_server_name = "semel.co"
-	$generate_certificate = "true"
+	$web_server_name = "mail.semel.co"
+	$generate_certificate = "false"
 
-	$files = "./files"
+	$files = "/root/mail-server-puppet/files"
 
 	if $generate_certificate == "true" {
 		$certificate = "ssl-cert-snakeoil.pem"
 		$certificate_key = "ssl-cert-snakeoil.key"
 	} else {
-		$certificate = "my-seed-cert.pem"
-		$certificate_key = "my-seed-cert.key"
+		$certificate = "mail.semel.co.pem"
+		$certificate_key = "mail.semel.co.key"
 	}
 
 	$maildb_user = 'mail'
@@ -113,6 +114,7 @@ class packages {
 	# Dovecot (imap)
 	package { "dovecot-core": 			ensure => present }
 	package { "dovecot-imapd": 			ensure => present }
+	package { "dovecot-pop3d": 			ensure => present }
 	package { "dovecot-lmtpd": 			ensure => present }
 	package { "dovecot-mysql": 			ensure => present }
 	package { "dovecot-sieve": 			ensure => present }
@@ -248,6 +250,9 @@ class config_firewall {
 	ufw::allow { 'firewall http':
 		port  => 80,
 	}
+	ufw::allow { 'firewall http2':
+		port  => 8000,
+	}
 	ufw::allow { 'firewall https':
 		port  => 443,
 	}
@@ -269,14 +274,49 @@ class config_firewall {
 	ufw::allow { 'imaps':
 		port  => 993,
 	}
+	ufw::allow { 'pop3':
+		port  => 110,
+	}
+	ufw::allow { 'pop3s':
+		port  => 995,
+	}
 }
 
 class config_php {
 	include stdlib
+
 	file_line { 'fix_pathinfo php security':
 	  path    => '/etc/php5/fpm/php.ini',
 	  line    => 'fix_pathinfo=0',
 	  match   => '^.*fix_pathinfo=.*$',
+	  require => Package['php5-fpm'],
+	}
+
+	file_line { 'increase file upload size 1':
+	  path    => '/etc/php5/fpm/php.ini',
+	  line    => 'upload_max_filesize = 20M',
+	  match   => '^.*upload_max_filesize=.*$',
+	  require => Package['php5-fpm'],
+	}
+
+	file_line { 'increase file upload size 2':
+	  path    => '/etc/php5/fpm/php.ini',
+	  line    => 'post_max_size = 20M',
+	  match   => '^.*post_max_size=.*$',
+	  require => Package['php5-fpm'],
+	}
+
+	file_line { 'increase file memory':
+	  path    => '/etc/php5/fpm/php.ini',
+	  line    => 'memory_limit = 256M',
+	  match   => '^.*memory_limit=.*$',
+	  require => Package['php5-fpm'],
+	}
+
+	file_line { 'increase execution time':
+	  path    => '/etc/php5/fpm/php.ini',
+	  line    => 'max_execution_time = 180',
+	  match   => '^.*max_execution_time=.*$',
 	  require => Package['php5-fpm'],
 	}
 }
@@ -309,18 +349,22 @@ class make_certificate {
 class nginx_config {
 	include config
 
+	$web_server_name 	= $config::web_server_name
 	$certificate 		= $config::certificate
 	$certificate_key 	= $config::certificate_key
 	$mail_server_name 	= $config::mail_server_name
 
-	file { "/etc/nginx/sites-available/default":
+	file { "/etc/nginx/sites-available/${web_server_name}":
 		ensure	=> present,
 		content	=> template("nginx.default.erb"),
 		require	=> Package["nginx"],
 		notify  => Service["nginx"],
+	}->
+	file { "/etc/nginx/sites-enabled/${web_server_name}":
+		ensure	=> link,
+		target  => "/etc/nginx/sites-available/${web_server_name}",
+		notify  => Service["nginx"],
 	}
-
-
 
 }
 
@@ -363,6 +407,7 @@ class configure_webadmin {
 	$mailadmin_user 	= $config::mailadmin_user
 	$mailadmin_pwd 		= $config::mailadmin_pwd
 
+	$web_server_name 	= $config::web_server_name
 	$certificate 		= $config::certificate
 	$certificate_key 	= $config::certificate_key
 	$mail_server_name 	= $config::mail_server_name
@@ -688,13 +733,13 @@ class configure_mail {
 		require => Package["dovecot-core"],
 		notify  => Service["dovecot"],
 	}
-	#	file_line { 'dovecot: ssl_ca':
-	#		path  => '/etc/dovecot/conf.d/10-ssl.conf',
-	#		line  => "ssl_ca = </etc/ssl/certs/ca-bundle.crt",
-	#		match => '^[# ]*ssl_ca *=.*$',
-	#		require => Package["dovecot-core"],
-	#		notify  => Service["dovecot"],
-	#	}
+#	file_line { 'dovecot: ssl_ca':
+#		path  => '/etc/dovecot/conf.d/10-ssl.conf',
+#		line  => "ssl_ca = </etc/ssl/certs/ca-bundle.crt",
+#		match => '^[# ]*ssl_ca *=.*$',
+#		require => Package["dovecot-core"],
+#		notify  => Service["dovecot"],
+#	}
 	file { "/etc/dovecot/conf.d/10-master.conf":
 		ensure	=> present,
 		content	=> template("10-master.conf.erb"),
@@ -878,10 +923,19 @@ class rainloop {
 	}
 
 	exec { "install-rainloop":
+		onlyif	=> "/usr/bin/test ! -d /var/www/rainloop/www/rainloop",
 		cwd => "/var/www/rainloop/www",
 		command => "/usr/bin/php installer.php",
 		logoutput => "on_failure",
 	}
+
+	#file_line { 'rainloop-change-password':
+	#	path  => '/etc/default/spamassassin',
+	#	line  => "ENABLED=1",
+	#	match => '^ENABLED=.*$',
+	#	require => Package["spamassassin"],
+	#	notify  => Service["spamassassin"],
+	#}
 }
 
 class ajenti {
@@ -891,6 +945,8 @@ class ajenti {
 	$ajenti_pwd  = $config::ajenti_pwd
 
 	exec { "install-ajenti":
+		onlyif	=> "/usr/bin/test ! -d /etc/ajenti",
+		cwd => "/root",
 		command => "/usr/bin/wget -O- https://raw.github.com/Eugeny/ajenti/master/scripts/install-ubuntu.sh | sudo sh",
 		logoutput => "on_failure",
 	}
