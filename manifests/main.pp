@@ -1,8 +1,9 @@
 
 class config {
-	$mail_server_name = "semel.co"
+	$mail_server_name = "MY.FQDN.COM"
 	$web_server_name = "mail.semel.co"
-	$generate_certificate = "false"
+
+	$generate_certificate = "true"
 
 	$files = "/root/mail-server-puppet/files"
 
@@ -10,31 +11,31 @@ class config {
 		$certificate = "ssl-cert-snakeoil.pem"
 		$certificate_key = "ssl-cert-snakeoil.key"
 	} else {
-		$certificate = "mail.semel.co.pem"
-		$certificate_key = "mail.semel.co.key"
+		$certificate = "my-seed-cert.pem"
+		$certificate_key = "my-seed-cert.key"
 	}
 
 	$maildb_user = 'mail'
 	$maildb_name = 'mail'
-	$maildb_pwd = get_password("/root/passwords/.mail.pwd")
+	$maildb_pwd = get_password("/root/.mail.pwd")
 
 	$mailadmin_user = "admin@$mail_server_name"
-	$mailadmin_pwd = get_password("/root/passwords/.mailadmin.pwd")
+	$mailadmin_pwd = get_password("/root/.mailadmin.pwd")
 
 	$roundcube_user = 'roundcube'
 	$roundcube_name = 'roundcube'
-	$roundcube_pwd = get_password("/root/passwords/.roundcube.pwd")
+	$roundcube_pwd = get_password("/root/.roundcube.pwd")
 
 	$rainloop_user = 'rainloop'
 	$rainloop_name = 'rainloop'
-	$rainloop_pwd = get_password("/root/passwords/.rainloop.pwd")
+	$rainloop_pwd = get_password("/root/.rainloop.pwd")
 
 	$ajenti_user = 'root'
-	$ajenti_pwd  = get_password("/root/passwords/.ajenti.pwd")
+	$ajenti_pwd  = get_password("/root/.ajenti.pwd")
 
-	$vimbadmin_salt1 = get_password("/root/passwords/.vimbadmin_salt1.pwd", 64)
-	$vimbadmin_salt2 = get_password("/root/passwords/.vimbadmin_salt2.pwd", 64)
-	$vimbadmin_salt3 = get_password("/root/passwords/.vimbadmin_salt3.pwd", 64)
+	$vimbadmin_salt1 = get_password("/root/.vimbadmin_salt1.pwd", 64)
+	$vimbadmin_salt2 = get_password("/root/.vimbadmin_salt2.pwd", 64)
+	$vimbadmin_salt3 = get_password("/root/.vimbadmin_salt3.pwd", 64)
 
 	$restore_maildb_backup = "false"
 	#
@@ -356,7 +357,7 @@ class nginx_config {
 
 	file { "/etc/nginx/sites-available/${web_server_name}":
 		ensure	=> present,
-		content	=> template("nginx.default.erb"),
+		content	=> template("custom/nginx.default.erb"),
 		require	=> Package["nginx"],
 		notify  => Service["nginx"],
 	}->
@@ -526,7 +527,7 @@ class configure_webadmin {
 	} ->
 	file { "/etc/nginx/sites-available/mailadmin":
 		ensure	=> present,
-		content	=> template("nginx-mailadmin.erb"),
+		content	=> template("custom/nginx-mailadmin.erb"),
 		require	=> Package["nginx"],
 		notify  => Service["nginx"],
 	} ->
@@ -611,7 +612,7 @@ class configure_mail {
 
 	file { "/etc/rsyslog.d/33-dovecot.conf":
 		ensure	=> present,
-		content	=> template("rsyslog-33-dovecot.conf"),
+		content	=> template("custom/rsyslog-33-dovecot.conf"),
 		require	=> Package["rsyslog"],
 		notify  => Service["rsyslog"],
 	}
@@ -638,7 +639,7 @@ class configure_mail {
     }
 	file { "/etc/dovecot/dovecot-sql.conf.ext":
 		ensure	=> present,
-		content	=> template("dovecot-sql.conf.ext.erb"),
+		content	=> template("custom/dovecot-sql.conf.ext.erb"),
 		require	=> Package["dovecot-core"],
 		notify  => Service["dovecot"],
 	}
@@ -742,7 +743,7 @@ class configure_mail {
 #	}
 	file { "/etc/dovecot/conf.d/10-master.conf":
 		ensure	=> present,
-		content	=> template("10-master.conf.erb"),
+		content	=> template("custom/10-master.conf.erb"),
 		require	=> [ User[vmail], Package["dovecot-core"]],
 		notify  => Service["dovecot"],
 	}
@@ -779,7 +780,7 @@ class configure_spamav {
 
 	file { "/etc/amavis/conf.d/15-content_filter_mode":
 		ensure	=> present,
-		content	=> template("15-content_filter_mode.erb"),
+		content	=> template("custom/15-content_filter_mode.erb"),
 		require	=> Package[amavis],
 		notify  => Service["amavis"],
 	}
@@ -799,7 +800,7 @@ class configure_spamav {
 	}
 	file { "/etc/amavis/conf.d/50-user":
 		ensure	=> present,
-		content	=> template("50-user.erb"),
+		content	=> template("custom/50-user.erb"),
 		require	=> Package[amavis],
 		notify  => Service["amavis"],
 	}
@@ -830,7 +831,7 @@ class configure_postfix {
         group   => 'root',
         mode    => 644,
 		ensure	=> present,
-		content	=> template("mysql_virtual_alias_maps.cf.erb"),
+		content	=> template("custom/mysql_virtual_alias_maps.cf.erb"),
 		require	=> Package[postfix],
 		notify  => Service["postfix"],
 	}
@@ -839,7 +840,7 @@ class configure_postfix {
         group   => 'root',
         mode    => 644,
 		ensure	=> present,
-		content	=> template("mysql_virtual_domains_maps.cf.erb"),
+		content	=> template("custom/mysql_virtual_domains_maps.cf.erb"),
 		require	=> Package[postfix],
 		notify  => Service["postfix"],
 	}
@@ -848,7 +849,7 @@ class configure_postfix {
         group   => 'root',
         mode    => 644,
 		ensure	=> present,
-		content	=> template("mysql_virtual_mailbox_maps.cf.erb"),
+		content	=> template("custom/mysql_virtual_mailbox_maps.cf.erb"),
 		require	=> Package[postfix],
 		notify  => Service["postfix"],
 	}
@@ -857,7 +858,7 @@ class configure_postfix {
         group   => 'root',
         mode    => 644,
 		ensure	=> present,
-		content	=> template("header_checks.erb"),
+		content	=> template("custom/header_checks.erb"),
 		require	=> Package[postfix],
 		notify  => Service["postfix"],
 	}
@@ -866,7 +867,7 @@ class configure_postfix {
         group   => 'root',
         mode    => 644,
 		ensure	=> present,
-		content	=> template("master.cf.erb"),
+		content	=> template("custom/master.cf.erb"),
 		require	=> Package[postfix],
 		notify  => Service["postfix"],
 	}
@@ -875,7 +876,7 @@ class configure_postfix {
         group   => 'root',
         mode    => 644,
 		ensure	=> present,
-		content	=> template("main.cf.erb"),
+		content	=> template("custom/main.cf.erb"),
 		require	=> Package[postfix],
 		notify  => Service["postfix"],
 	}
@@ -916,7 +917,7 @@ class rainloop {
 
 	file { "/var/www/rainloop/www/installer.php":
 		ensure	=> present,
-		content	=> template("installer.php"),
+		content	=> template("custom/installer.php"),
 		before => Exec[
 			"install-rainloop"
 		]
@@ -1014,7 +1015,7 @@ class backup_user {
 		owner 		=> 'backup',
 		group 		=> 'backup',
 		mode  		=> 755,
-		content		=> template("backup-to-this.sh.erb"),
+		content		=> template("custom/backup-to-this.sh.erb"),
 		require		=> File["/home/backup"]
 	}
 	file { "/home/backup/.my.cnf":
@@ -1022,7 +1023,7 @@ class backup_user {
 		owner 		=> 'backup',
 		group 		=> 'backup',
 		mode  		=> 600,
-		content		=> template("backup-my.cnf.erb"),
+		content		=> template("custom/backup-my.cnf.erb"),
 		require		=> File["/home/backup"]
 	}
 }
