@@ -40,5 +40,5 @@ See the [Quick Start](https://github.com/mhcg/mail-server-puppet/wiki/Quick-Star
 
 ## License
 
-TODO: Write license
+See [LICENSE](LICENSE.md) file
 
