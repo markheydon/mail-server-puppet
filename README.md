@@ -1,44 +1,36 @@
-A Mailserver on Ubuntu 14.04: Postfix, Dovecot, MySQL
------------------------------------------------------
+# Mailserver for Ubuntu 14.04 LTS: Postfix, Dovecot, pop3d, RainLoop and Amavis+ClamAV
 
-Mailserver setup in puppet:
+This project builds on the excellent standalone puppet installation script from [mickem / mail-server-puppet](https://github.com/mickem/mail-server-puppet), and fork [ksemel / mail-server-puppet](https://github.com/ksemel/mail-server-puppet). The goal being to have a fully functioning, complete mail server with admin UI, webmail, IMAP/POP3 access solution up and running quickly and easily.
 
-Based on the following guide: https://www.exratione.com/2014/05/a-mailserver-on-ubuntu-1404-postfix-dovecot-mysql/
+## Installation
 
-Instructions from the guide:
+See the [[Quick Start|quick-start]] page for installation details
 
-"This long post contains a recipe for building a reasonably secure Ubuntu 14.04 mail server in Amazon Web Services, using Postfix, Dovecot, and MySQL, with anti-spam packages in the form of amavisd-new, Clam AntiVirus, SpamAssassin, and Postgrey. Local users are virtual rather than being system users. Administration of users and domains is achieved through the Postfix Admin web interface. Webmail is provided by Roundcube."
+## Usage
 
-Changes from the guide:
- * Replaced apache with nginx
- * Replaced mailadmin with ViMbAdmin
- * Added master user support to dovecot
- * Added import of seed data
+See the [[Quick Start|quick-start]] page for initial setup details
 
+## Contributing
 
-Login as root and create an admin user (this is the user you will run the reminder of this install as):
-```
-USER=<user>
-addgroup puppet
-useradd -s /bin/bash -m -d /home/puppet -c "Admin user" -g puppet -G sudo puppet
-# OPTIONAL: If you have your ssh keys under root you can copy those to the user.
-cp -r /root/.ssh/ /home/puppet/ && chown -R puppet:puppet /home/puppet/.ssh
-# OPTIONAL: Remove the old key from root
-rm -rf /root/.ssh
-# Lastly set the password
-passwd puppet
-```
+1. Fork it!
+2. Create your feature branch: `git checkout -b my-new-feature`
+3. Commit your changes: `git commit -am 'Add some feature'`
+4. Push to the branch: `git push origin my-new-feature`
+5. Submit a pull request :D
 
-Login as <user>
-```
-git clone <repo>
-cd https://github.com/mickem/mail-server-puppet.git
-cd mail-server-puppet
-# Edit configuration (manifests/config.pp)
-./start.sh
-```
+## History
 
-If you want to re-run puppet use:
-```
-sudo puppet apply  --modulepath=/usr/share/puppet/modules:./modules --templatedir templates server.pp
-```
+### 1.0 (2015-02-17)
+
+* Consolidation of work done in original [mickem / mail-server-puppet](https://github.com/mickem/mail-server-puppet) project, and additional work in [ksemel / mail-server-puppet](https://github.com/ksemel/mail-server-puppet). Plus changes to make a little more generic.
+
+## Credits
+
+* [mickem](https://github.com/mickem)
+* [ksemel](https://github.com/ksemel)
+* MHCG Service Desk _(helped with testing)_
+
+## License
+
+TODO: Write license
+
