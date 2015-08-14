@@ -7,7 +7,7 @@ Solution includes:
 * Postfix;
 * Dovecot;
 * pop3d;
-* RainLoopl and
+* RainLoop; and
 * Amavis+ClamAV
 
 ## Installation
