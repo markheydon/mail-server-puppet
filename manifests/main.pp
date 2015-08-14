@@ -1,7 +1,7 @@
 
 class config {
 	$mail_server_name = "MY.FQDN.COM"
-	$web_server_name = "mailserver.MYFQDN.COM"
+	$web_server_name = "mailserver.MY.FQDN.COM"
 
 	$generate_certificate = "true"
 
