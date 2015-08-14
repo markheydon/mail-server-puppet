@@ -1,14 +1,22 @@
-# Mailserver for Ubuntu 14.04 LTS: Postfix, Dovecot, pop3d, RainLoop and Amavis+ClamAV
+# Mailserver for Ubuntu 14.04 LTS
 
 This project builds on the excellent standalone puppet installation script from [mickem / mail-server-puppet](https://github.com/mickem/mail-server-puppet), and fork [ksemel / mail-server-puppet](https://github.com/ksemel/mail-server-puppet). The goal being to have a fully functioning, complete mail server with admin UI, webmail, IMAP/POP3 access solution up and running quickly and easily.
 
+Solution includes:
+
+* Postfix;
+* Dovecot;
+* pop3d;
+* RainLoopl and
+* Amavis+ClamAV
+
 ## Installation
 
-See the [[Quick Start|quick-start]] page for installation details
+See the [Quick Start](https://github.com/mhcg/mail-server-puppet/wiki/Quick-Start) page for installation details
 
 ## Usage
 
-See the [[Quick Start|quick-start]] page for initial setup details
+See the [Quick Start](https://github.com/mhcg/mail-server-puppet/wiki/Quick-Start) page for initial setup details
 
 ## Contributing
 
