@@ -6,6 +6,3 @@ if ! which puppet > /dev/null; then
 	sudo apt-get --assume-yes upgrade
 	sudo apt-get --assume-yes install puppet
 fi;
-if [ ! -d /etc/puppet/modules/stdlib ]; then
-	sudo puppet module install puppetlabs-stdlib
-fi
