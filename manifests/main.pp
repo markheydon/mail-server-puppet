@@ -38,20 +38,15 @@ class config {
 	$vimbadmin_salt3 = get_password("/root/.vimbadmin_salt3.pwd", 64)
 
 	$restore_maildb_backup = "false"
-	#
+	
 	# Number of processors to use for amavis (less means less memory, more means more emails at a time)
-	#
-	$amavis_process_count = 3
+	$amavis_process_count = 2
 
-	#
 	# Maximum allowed email size.
-	#
 	$message_size_limit = 10240000
-
 
 	$backup_user_allowed_key = ""
 }
-
 
 class packages {
 
@@ -59,13 +54,13 @@ class packages {
 	package { "apache2": 		ensure => absent }
 	->
 	exec { "autoremove" :
-	    user        => "root",
-        path        => ["/usr/bin/","/usr/sbin/","/bin"],
-	    command     => "sudo apt-get autoremove --purge -y",
-	    refreshonly => true
+		user        => "root",
+		path  => ["/usr/bin/","/usr/sbin/","/bin"],
+		command     => "sudo apt-get autoremove --purge -y",
+		refreshonly => true
 	}
 	->
-	package { "nginx": 			ensure => present }
+	package { "nginx": 		ensure => present }
 	->
 	package { "apache2-utils": 	ensure => present }
 
@@ -75,19 +70,19 @@ class packages {
 	package { "php5-mcrypt": 	ensure => present, require => Package["php5-fpm"], }
 	package { "php5-curl": 		ensure => present, require => Package["php5-fpm"], }
 	package { "php5-gd": 		ensure => present, require => Package["php5-fpm"], }
-	package { "php-xml-parser": ensure => present, require => Package["php5-fpm"], }
+	package { "php-xml-parser": 	ensure => present, require => Package["php5-fpm"], }
 	package { "php5-mysql": 	ensure => present, require => Package["php5-fpm"], }
 	package { "php5-imap": 		ensure => present, require => Package["php5-fpm"], }
 
-	#package { "mariadb-client": ensure => absent }
-	#package { "mariadb-server": ensure => present }
+	#package { "mariadb-client": 	ensure => absent }
+	#package { "mariadb-server": 	ensure => present }
 
-	package { "mysql-server":   ensure => present }
-    package { "mysql-client":   ensure => present }
+	package { "mysql-server":	ensure => present }
+	package { "mysql-client":	ensure => present }
 
 	# postfix (smtp)
 	package { "postfix": 		ensure => present }
-	package { "postfix-mysql": 	ensure => present }
+	package { "postfix-mysql": 	ensure => present, require => Package["postfix"], }
 
 	package { "postgrey": 		ensure => present }
 	package { "amavis": 		ensure => present }
@@ -96,42 +91,45 @@ class packages {
 	package { "spamassassin": 	ensure => present }
 
 	# Random stuff needed by spam/virtus scanners
-	package { "pyzor": 			ensure => present }
-	package { "razor": 			ensure => present }
-	package { "arj": 			ensure => present }
+	package { "pyzor": 		ensure => present }
+	package { "razor": 		ensure => present }
+	package { "arj": 		ensure => present }
 	package { "cabextract": 	ensure => present }
-	package { "lzop": 			ensure => present }
+	package { "lzop": 		ensure => present }
 	package { "nomarch": 		ensure => present }
 	package { "p7zip-full": 	ensure => present }
 	package { "ripole": 		ensure => present }
 	package { "rpm2cpio": 		ensure => present }
-	package { "tnef": 			ensure => present }
-	package { "unzip": 			ensure => present }
+	package { "tnef": 		ensure => present }
+	package { "unzip": 		ensure => present }
 	package { "unrar-free": 	ensure => present }
-	package { "zip": 			ensure => present }
-	package { "zoo": 			ensure => present }
-
+	package { "zip": 		ensure => present }
+	package { "zoo": 		ensure => present }
 
 	# Dovecot (imap)
-	package { "dovecot-core": 			ensure => present }
-	package { "dovecot-imapd": 			ensure => present }
-	package { "dovecot-pop3d": 			ensure => present }
-	package { "dovecot-lmtpd": 			ensure => present }
-	package { "dovecot-mysql": 			ensure => present }
-	package { "dovecot-sieve": 			ensure => present }
+	package { "dovecot-core": 		ensure => present }
+	package { "dovecot-imapd": 		ensure => present }
+	package { "dovecot-pop3d": 		ensure => present }
+	package { "dovecot-lmtpd": 		ensure => present }
+	package { "dovecot-mysql": 		ensure => present }
+	package { "dovecot-sieve": 		ensure => present }
 	package { "dovecot-managesieved": 	ensure => present }
 
 	# ssl helpers to make dummy certs
-	package { "ssl-cert": 		ensure => present }
+	package { "ssl-cert":			ensure => present }
 
-	package { "git-core": 		ensure => present }
-	package { "rsyslog": 		ensure => present }
-	package { "openssh-server": ensure => present }
-	package { "sudo": 			ensure => present }
+	# support utilites
+	package { "git-core":			ensure => present }
+	package { "subversion":			ensure => present }
+	package { "rsyslog": 			ensure => present }
+	package { "openssh-server":		ensure => present }
+	package { "openssh-blacklist":		ensure => present, require => Package["openssh-server"], }
+	package { "openssh-blacklist-extra":	ensure => present, require => Package["openssh-server"], }
+	package { "sudo":			ensure => present }
 
 	# DKIM
-	package { "opendkim":		ensure => present }
-	package { "opendkim-tools":	ensure => present }
+	package { "opendkim":			ensure => present }
+	package { "opendkim-tools":		ensure => present }
 
 	# Update before
 	exec { "apt-update":
@@ -139,6 +137,7 @@ class packages {
 	}
 	#Exec["apt-update"]	-> Package <| |>
 }
+
 class services {
 	service { "nginx":
 		ensure  => "running",
@@ -190,14 +189,13 @@ class services {
 		enable  => "true",
 		require => Package["rsyslog"],
 	}
-
 }
+
 class swap {
 	exec { 'Create swap file':
 		command => "/usr/bin/fallocate -l 4G /swapfile",
 		creates => "/swapfile",
 	}
-
 	exec { 'Attach swap file':
 		command => "/sbin/mkswap /swapfile && /sbin/swapon /swapfile",
 		require => Exec['Create swap file'],
@@ -206,32 +204,31 @@ class swap {
 	}
 }
 
-
 class config_host {
 	include config
 
 	$mail_server_name = $config::mail_server_name
 	$alias            = regsubst($mail_server_name, '^([^.]*).*$', '\1')
-
-    file { '/etc/hostname':
-        ensure       => present,
-        owner        => 'root',
-        group        => 'root',
-        mode         => 644,
-        content      => "${mail_server_name}\n",
-    } ->
+	
+	file { '/etc/hostname':
+        	ensure       => present,
+		owner        => 'root',
+		group        => 'root',
+		mode         => 644,
+		content      => "${mail_server_name}\n",
+	} ->
 	exec { "update-hostname":
 		unless       => "/usr/bin/test \"`/bin/hostname --fqdn`\" == \"${mail_server_name}\"",
 		command      => "/bin/hostname \"${mail_server_name}\"",
 		logoutput    => "on_failure",
 	} ->
-    file { '/etc/mailname':
-        ensure       => present,
-        owner        => 'root',
-        group        => 'root',
-        mode         => 644,
-        content      => "${mail_server_name}\n",
-    }
+	file { '/etc/mailname':
+		ensure       => present,
+		owner        => 'root',
+		group        => 'root',
+		mode         => 644,
+		content      => "${mail_server_name}\n",
+	}
 	host { "${mail_server_name}":
 		ip           => '127.0.0.1',
 		host_aliases => "$alias",
@@ -287,33 +284,29 @@ class config_php {
 	include stdlib
 
 	file_line { 'fix_pathinfo php security':
-	  path    => '/etc/php5/fpm/php.ini',
-	  line    => 'fix_pathinfo=0',
-	  match   => '^.*fix_pathinfo=.*$',
-	  require => Package['php5-fpm'],
+		path	=> '/etc/php5/fpm/php.ini',
+		line	=> 'fix_pathinfo=0',
+		match	=> '^.*fix_pathinfo=.*$',
+		require	=> Package['php5-fpm'],
 	}
-
 	file_line { 'increase file upload size 1':
-	  path    => '/etc/php5/fpm/php.ini',
-	  line    => 'upload_max_filesize = 20M',
-	  match   => '^.*upload_max_filesize=.*$',
-	  require => Package['php5-fpm'],
+		path	=> '/etc/php5/fpm/php.ini',
+		line	=> 'upload_max_filesize = 20M',
+		match	=> '^.*upload_max_filesize=.*$',
+		require	=> Package['php5-fpm'],
 	}
-
 	file_line { 'increase file upload size 2':
-	  path    => '/etc/php5/fpm/php.ini',
-	  line    => 'post_max_size = 20M',
-	  match   => '^.*post_max_size=.*$',
-	  require => Package['php5-fpm'],
+		path	=> '/etc/php5/fpm/php.ini',
+		line	=> 'post_max_size = 20M',
+		match	=> '^.*post_max_size=.*$',
+		require	=> Package['php5-fpm'],
 	}
-
 	file_line { 'increase file memory':
 	  path    => '/etc/php5/fpm/php.ini',
 	  line    => 'memory_limit = 256M',
 	  match   => '^.*memory_limit=.*$',
 	  require => Package['php5-fpm'],
 	}
-
 	file_line { 'increase execution time':
 	  path    => '/etc/php5/fpm/php.ini',
 	  line    => 'max_execution_time = 180',
@@ -321,6 +314,7 @@ class config_php {
 	  require => Package['php5-fpm'],
 	}
 }
+
 class make_certificate {
 	include config
 	$generate_certificate = $config::generate_certificate
@@ -422,7 +416,7 @@ class configure_webadmin {
 		ensure      => directory,
 	} ->
 	exec { "download_composer":
-		command => "/usr/bin/curl -sS https://getcomposer.org/installer | /usr/bin/php",
+		command => "/usr/bin/curl -sS -O https://getcomposer.org/composer.phar > /tmp/composer.phar",
 		creates => "/tmp/composer.phar",
 		require => Package['php5-fpm'],
 		cwd     => '/tmp',
@@ -948,7 +942,7 @@ class ajenti {
 	exec { "install-ajenti":
 		onlyif	=> "/usr/bin/test ! -d /etc/ajenti",
 		cwd => "/root",
-		command => "/usr/bin/wget -O- https://raw.github.com/Eugeny/ajenti/master/scripts/install-ubuntu.sh | sudo sh",
+		command => "/usr/bin/wget -O- https://raw.githubusercontent.com/ajenti/ajenti/master/scripts/install.sh | sudo sh",
 		logoutput => "on_failure",
 	}
 }
@@ -1037,7 +1031,7 @@ include nginx_config
 include configure_spamav
 include configure_postfix
 
-include config_firewall
+#include config_firewall
 
 include config_php
 include rainloop
