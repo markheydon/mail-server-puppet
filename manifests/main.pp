@@ -74,9 +74,11 @@ class packages {
 	package { "php5-mysql": 	ensure => present, require => Package["php5-fpm"], }
 	package { "php5-imap": 		ensure => present, require => Package["php5-fpm"], }
 
+	# database server
 	#package { "mariadb-client": 	ensure => absent }
 	#package { "mariadb-server": 	ensure => present }
 
+	# database server
 	package { "mysql-server":	ensure => present }
 	package { "mysql-client":	ensure => present }
 
@@ -130,6 +132,10 @@ class packages {
 	# DKIM
 	package { "opendkim":			ensure => present }
 	package { "opendkim-tools":		ensure => present }
+
+	# ajenti
+	package { "python-pip":			ensure => present }
+
 
 	# Update before
 	exec { "apt-update":
@@ -751,7 +757,7 @@ class configure_mail {
 
 }
 class chown_dovecot_config {
-	Exec {
+	exec {
 		logoutput => "on_failure",
 	}
 	exec { "chown dovecot config":
