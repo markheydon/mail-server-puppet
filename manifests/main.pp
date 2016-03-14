@@ -339,18 +339,13 @@ class make_certificate {
 			creates		=> [ "/etc/ssl/certs/ssl-cert-snakeoil.pem", "/etc/ssl/private/ssl-cert-snakeoil.key" ],
 			require		=> Package["ssl-cert"],
 			logoutput	=> "on_failure",
-		}
+		} ~> Service['nginx']
 	}
 	elsif $generate_certificate == "letsencrypt" {
                 $certificate		= $config::certificate
                 $certificate_key	= $config::certificate_key
 		file { "/tmp/letsencrypt":
 			ensure  => directory,
-		} ->
-		service { 'nginx':
- 			ensure	=> stopped,
-			enable	=> false,
-			hasstatus	=> true,
 		} ->
 		class { ::letsencrypt:
 			config => {
@@ -363,6 +358,7 @@ class make_certificate {
 				#webroot_paths quantity must be same number of domains
 				#webroot_paths   => ['/tmp/letsencrypt', '/tmp/letsencrypt'],
 				plugin  => 'standalone',
+				before => Service["nginx"],
 		} ->
 		
 	        file { "/etc/ssl/certs/$certificate":
@@ -374,12 +370,7 @@ class make_certificate {
                         ensure  => link,
 			links	=> follow,
                         source  => "/etc/letsencrypt/live/${config::mail_server_name}/$certificate_key",
-                } ->	
-		service { 'nginx':
- 			ensure	=> started,
-			enable	=> false,
-			hasstatus	=> true,
-		}
+                } ~> Service['nginx']
 	}
 	else {
 		$certificate		= $config::certificate
@@ -392,8 +383,8 @@ class make_certificate {
 			ensure	=> present,
 			source	=> "${files}/ssl/$certificate_key",
 			mode	=> 600,
-		}
-	}
+		} ~> Service['nginx']
+	} 
 }
 
 class nginx_config {
@@ -567,7 +558,7 @@ class configure_webadmin {
 		unless	=> "/usr/bin/mysql -uroot $maildb_name -e \"select 1 from admin;\"",
 		command	=> "/usr/local/vimbadmin/bin/doctrine2-cli.php orm:schema-tool:create",
 		environment	=> ["COMPOSER_HOME=/usr/local/vimbadmin"],
-		cwd	=> '/usr/local/vimbadmin',
+		cwd		=> '/usr/local/vimbadmin',
 		logoutput	=> 'true'
 	} ->
 	file { "/etc/nginx/sites-available/${mail_server_name}":
@@ -576,9 +567,9 @@ class configure_webadmin {
 		require	=> Package["nginx"],
 		notify	=> Service["nginx"],
 	} ->
-	file { "/etc/nginx/sites-enabled/mailadmin":
+	file { "/etc/nginx/sites-enabled/${mail_server_name}":
 		ensure	=> link,
-		target	=> "/etc/nginx/sites-available/mailadmin",
+		target	=> "/etc/nginx/sites-available/${mail_server_name}",
 		notify	=> Service["nginx"],
 	} ->
 	exec { "force restart nginx":
