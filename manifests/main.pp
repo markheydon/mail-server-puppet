@@ -136,7 +136,6 @@ class packages {
 	# ajenti
 	package { "python-pip":			ensure => present }
 
-
 	# Update before
 	exec { "apt-update":
 		command => "/usr/bin/apt-get update"
@@ -308,16 +307,16 @@ class config_php {
 		require	=> Package['php5-fpm'],
 	}
 	file_line { 'increase file memory':
-	  path    => '/etc/php5/fpm/php.ini',
-	  line    => 'memory_limit = 256M',
-	  match   => '^.*memory_limit=.*$',
-	  require => Package['php5-fpm'],
+		path	=> '/etc/php5/fpm/php.ini',
+		line	=> 'memory_limit = 256M',
+		match	=> '^.*memory_limit=.*$',
+		require	=> Package['php5-fpm'],
 	}
 	file_line { 'increase execution time':
-	  path    => '/etc/php5/fpm/php.ini',
-	  line    => 'max_execution_time = 180',
-	  match   => '^.*max_execution_time=.*$',
-	  require => Package['php5-fpm'],
+		path	=> '/etc/php5/fpm/php.ini',
+		line	=> 'max_execution_time = 180',
+		match	=> '^.*max_execution_time=.*$',
+		require	=> Package['php5-fpm'],
 	}
 }
 
@@ -327,22 +326,22 @@ class make_certificate {
 	$files = $config::files
 	if $generate_certificate == "true" {
 		exec { "make-ssl-cert":
-			command   => "/usr/sbin/make-ssl-cert generate-default-snakeoil --force-overwrite",
-			creates   => [ "/etc/ssl/certs/ssl-cert-snakeoil.pem", "/etc/ssl/private/ssl-cert-snakeoil.key" ],
-			require   => Package["ssl-cert"],
-			logoutput => "on_failure",
+			command		=> "/usr/sbin/make-ssl-cert generate-default-snakeoil --force-overwrite",
+			creates		=> [ "/etc/ssl/certs/ssl-cert-snakeoil.pem", "/etc/ssl/private/ssl-cert-snakeoil.key" ],
+			require		=> Package["ssl-cert"],
+			logoutput	=> "on_failure",
 		}
 	} else {
-		$certificate = $config::certificate
-		$certificate_key = $config::certificate_key
+		$certificate		= $config::certificate
+		$certificate_key	= $config::certificate_key
 		file { "/etc/ssl/certs/$certificate":
-          ensure => present,
-          source => "${files}/ssl/$certificate",
+			ensure	=> present,
+			source	=> "${files}/ssl/$certificate",
 		}
 		file { "/etc/ssl/private/$certificate_key":
-          ensure => present,
-          source => "${files}/ssl/$certificate_key",
-		  mode   => 600,
+			ensure	=> present,
+			source	=> "${files}/ssl/$certificate_key",
+			mode	=> 600,
 		}
 	}
 }
@@ -359,12 +358,12 @@ class nginx_config {
 		ensure	=> present,
 		content	=> template("custom/nginx.default.erb"),
 		require	=> Package["nginx"],
-		notify  => Service["nginx"],
+		notify	=> Service["nginx"],
 	}->
 	file { "/etc/nginx/sites-enabled/${web_server_name}":
 		ensure	=> link,
-		target  => "/etc/nginx/sites-available/${web_server_name}",
-		notify  => Service["nginx"],
+		target	=> "/etc/nginx/sites-available/${web_server_name}",
+		notify	=> Service["nginx"],
 	}
 
 }
@@ -419,133 +418,133 @@ class configure_webadmin {
 
 	# check if directory exists
 	file { "/usr/local/bin":
-		ensure      => directory,
+		ensure	=> directory,
 	} ->
 	exec { "download_composer":
-		command => "/usr/bin/curl -sS -O https://getcomposer.org/composer.phar > /tmp/composer.phar",
-		creates => "/tmp/composer.phar",
-		require => Package['php5-fpm'],
-		cwd     => '/tmp',
+		command	=> "/usr/bin/curl -sS -O https://getcomposer.org/composer.phar > /tmp/composer.phar",
+		creates	=> "/tmp/composer.phar",
+		require	=> Package['php5-fpm'],
+		cwd	=> '/tmp',
 	} ->
 	file { "/usr/local/bin/composer.phar":
-		ensure      => present,
-		source      => "/tmp/composer.phar",
-		group       => 'staff',
-		mode        => '0755',
+		ensure	=> present,
+		source	=> "/tmp/composer.phar",
+		group	=> 'staff',
+		mode	=> '0755',
 	} ->
 	exec { "clone_ViMbAdmin":
-		command => "/usr/bin/git clone https://github.com/opensolutions/ViMbAdmin.git vimbadmin",
-		creates => "/usr/local/vimbadmin",
-		cwd     => '/usr/local',
-		require => [ Package['git-core'], File["/usr/local/bin/composer.phar"], ],
-		notify  => Exec['chown_ViMbAdmin'],
+		command	=> "/usr/bin/git clone https://github.com/opensolutions/ViMbAdmin.git vimbadmin",
+		creates	=> "/usr/local/vimbadmin",
+		cwd	=> '/usr/local',
+		require	=> [ Package['git-core'], File["/usr/local/bin/composer.phar"], ],
+		notify	=> Exec['chown_ViMbAdmin'],
 	} ->
 	exec { "install ViMbAdmin":
-		command => "/usr/bin/php /usr/local/bin/composer.phar install --no-interaction",
-		environment => ["COMPOSER_HOME=/usr/local/vimbadmin"],
-		cwd     => '/usr/local/vimbadmin',
+		command	=> "/usr/bin/php /usr/local/bin/composer.phar install --no-interaction",
+		environment	=> ["COMPOSER_HOME=/usr/local/vimbadmin"],
+		cwd	=> '/usr/local/vimbadmin',
 	} ->
 	file { "/usr/local/vimbadmin/public/.htaccess":
-		ensure      => present,
-		source      => "/usr/local/vimbadmin/public/.htaccess.dist",
-		mode        => '0644',
+		ensure	=> present,
+		source	=> "/usr/local/vimbadmin/public/.htaccess.dist",
+		mode	=> '0644',
 	} ->
 	exec { "chown_ViMbAdmin":
-		command => "/bin/chown www-data:www-data -R /usr/local/vimbadmin/var",
+		command	=> "/bin/chown www-data:www-data -R /usr/local/vimbadmin/var",
 	} ->
 	file { "/usr/local/vimbadmin/application/configs/application.ini":
-		ensure      => present,
-		replace		=> false,
-		source      => "/usr/local/vimbadmin/application/configs/application.ini.dist",
+		ensure	=> present,
+		replace	=> false,
+		source	=> "/usr/local/vimbadmin/application/configs/application.ini.dist",
 	} ->
 	file_line { 'vimbadmin_salt1 application.ini':
-	  path  => '/usr/local/vimbadmin/application/configs/application.ini',
-	  line  => "securitysalt=\"$vimbadmin_salt1\"",
-	  match => '^securitysalt.*=.*$',
+		path	=> '/usr/local/vimbadmin/application/configs/application.ini',
+		line	=> "securitysalt=\"$vimbadmin_salt1\"",
+		match	=> '^securitysalt.*=.*$',
 	} ->
 	file_line { '2 application.ini':
-	  path  => '/usr/local/vimbadmin/application/configs/application.ini',
-	  line  => "resources.auth.oss.rememberme.salt=\"$vimbadmin_salt2\"",
-	  match => '^resources.auth.oss.rememberme.salt.*=.*$',
+		path	=> '/usr/local/vimbadmin/application/configs/application.ini',
+		line	=> "resources.auth.oss.rememberme.salt=\"$vimbadmin_salt2\"",
+		match	=> '^resources.auth.oss.rememberme.salt.*=.*$',
 	} ->
 	file_line { 'vimbadmin_salt3 application.ini':
-	  path  => '/usr/local/vimbadmin/application/configs/application.ini',
-	  line  => "defaults.mailbox.password_salt=\"$vimbadmin_salt3\"",
-	  match => '^defaults.mailbox.password_salt.*=.*$',
+		path	=> '/usr/local/vimbadmin/application/configs/application.ini',
+		line	=> "defaults.mailbox.password_salt=\"$vimbadmin_salt3\"",
+		match	=> '^defaults.mailbox.password_salt.*=.*$',
 	} ->
 	file_line { 'defaults.mailbox.gid application.ini':
-	  path  => '/usr/local/vimbadmin/application/configs/application.ini',
-	  line  => "defaults.mailbox.gid=TODO",
-	  match => '^defaults.mailbox.gid.*=.*$',
+		path	=> '/usr/local/vimbadmin/application/configs/application.ini',
+		line	=> "defaults.mailbox.gid=TODO",
+		match	=> '^defaults.mailbox.gid.*=.*$',
 	} ->
 	file_line { 'defaults.mailbox.uid application.ini':
-	  path  => '/usr/local/vimbadmin/application/configs/application.ini',
-	  line  => "defaults.mailbox.uid=TODO",
-	  match => '^defaults.mailbox.uid.*=.*$',
+		path	=> '/usr/local/vimbadmin/application/configs/application.ini',
+		line	=> "defaults.mailbox.uid=TODO",
+		match	=> '^defaults.mailbox.uid.*=.*$',
 	} ->
 	file_line { 'defaults.mailbox.homedir application.ini':
-	  path  => '/usr/local/vimbadmin/application/configs/application.ini',
-	  line  => "defaults.mailbox.homedir='/var/vmail/'",
-	  match => '^defaults.mailbox.homedir.*=.*$',
+		path	=> '/usr/local/vimbadmin/application/configs/application.ini',
+		line	=> "defaults.mailbox.homedir='/var/vmail/'",
+		match	=> '^defaults.mailbox.homedir.*=.*$',
 	} ->
 	file_line { 'db-driver application.ini':
-	  path  => '/usr/local/vimbadmin/application/configs/application.ini',
-	  line  => "resources.doctrine2.connection.options.driver='pdo_mysql'",
-	  match => '^resources.doctrine2.connection.options.driver.*=.*$',
+		path	=> '/usr/local/vimbadmin/application/configs/application.ini',
+		line	=> "resources.doctrine2.connection.options.driver='pdo_mysql'",
+		match	=> '^resources.doctrine2.connection.options.driver.*=.*$',
 	} ->
 	file_line { 'db-name application.ini':
-	  path  => '/usr/local/vimbadmin/application/configs/application.ini',
-	  line  => "resources.doctrine2.connection.options.dbname='$maildb_name'",
-	  match => '^resources.doctrine2.connection.options.dbname.*=.*$',
+		path	=> '/usr/local/vimbadmin/application/configs/application.ini',
+		line	=> "resources.doctrine2.connection.options.dbname='$maildb_name'",
+		match	=> '^resources.doctrine2.connection.options.dbname.*=.*$',
 	} ->
 	file_line { 'db-user application.ini':
-	  path  => '/usr/local/vimbadmin/application/configs/application.ini',
-	  line  => "resources.doctrine2.connection.options.user='$maildb_user'",
-	  match => '^resources.doctrine2.connection.options.user.*=.*$',
+		path	=> '/usr/local/vimbadmin/application/configs/application.ini',
+		line	=> "resources.doctrine2.connection.options.user='$maildb_user'",
+		match	=> '^resources.doctrine2.connection.options.user.*=.*$',
 	} ->
 	file_line { 'db-pwd application.ini':
-	  path  => '/usr/local/vimbadmin/application/configs/application.ini',
-	  line  => "resources.doctrine2.connection.options.password='$maildb_pwd'",
-	  match => '^resources.doctrine2.connection.options.password.*=.*$',
+		path	=> '/usr/local/vimbadmin/application/configs/application.ini',
+		line	=> "resources.doctrine2.connection.options.password='$maildb_pwd'",
+		match	=> '^resources.doctrine2.connection.options.password.*=.*$',
 	} ->
 	file_line { 'db-hostname application.ini':
-	  path  => '/usr/local/vimbadmin/application/configs/application.ini',
-	  line  => "resources.doctrine2.connection.options.host='localhost'",
-	  match => '^resources.doctrine2.connection.options.host.*=.*$',
+		path	=> '/usr/local/vimbadmin/application/configs/application.ini',
+		line	=> "resources.doctrine2.connection.options.host='localhost'",
+		match	=> '^resources.doctrine2.connection.options.host.*=.*$',
 	} ->
 	file_line { 'password scheme application.ini':
-	  path  => '/usr/local/vimbadmin/application/configs/application.ini',
-	  line  => "defaults.mailbox.password_scheme='md5'",
-	  match => '^defaults.mailbox.password_scheme.*=.*$',
+		path	=> '/usr/local/vimbadmin/application/configs/application.ini',
+		line	=> "defaults.mailbox.password_scheme='md5'",
+		match	=> '^defaults.mailbox.password_scheme.*=.*$',
 	} ->
 	exec { "install ViMbAdmin db":
-		unless      => "/usr/bin/mysql -uroot $maildb_name -e \"select 1 from admin;\"",
-		command     => "/usr/local/vimbadmin/bin/doctrine2-cli.php orm:schema-tool:create",
-		environment => ["COMPOSER_HOME=/usr/local/vimbadmin"],
-		cwd         => '/usr/local/vimbadmin',
-		logoutput   => 'true'
+		unless	=> "/usr/bin/mysql -uroot $maildb_name -e \"select 1 from admin;\"",
+		command	=> "/usr/local/vimbadmin/bin/doctrine2-cli.php orm:schema-tool:create",
+		environment	=> ["COMPOSER_HOME=/usr/local/vimbadmin"],
+		cwd	=> '/usr/local/vimbadmin',
+		logoutput	=> 'true'
 	} ->
 	file { "/etc/nginx/sites-available/mailadmin":
 		ensure	=> present,
 		content	=> template("custom/nginx-mailadmin.erb"),
 		require	=> Package["nginx"],
-		notify  => Service["nginx"],
+		notify	=> Service["nginx"],
 	} ->
 	file { "/etc/nginx/sites-enabled/mailadmin":
 		ensure	=> link,
-		target  => "/etc/nginx/sites-available/mailadmin",
-		notify  => Service["nginx"],
+		target	=> "/etc/nginx/sites-available/mailadmin",
+		notify	=> Service["nginx"],
 	} ->
 	exec { "force restart nginx":
-		command => "/etc/init.d/nginx reload",
-		refreshonly => true,
-		require => Service[[nginx]],
+		command	=> "/etc/init.d/nginx reload",
+		refreshonly	=> true,
+		require	=> Service[[nginx]],
 	} ->
 	exec { "configure admin":
-		command  => "/usr/bin/curl --insecure --data 'salt=${vimbadmin_salt1}&username=${mailadmin_user}&password=${mailadmin_pwd}' https://127.0.0.1:444/auth/setup --max-time 10",
-		onlyif   => "/usr/bin/test \"`/usr/bin/mysql --raw -uroot $maildb_name -e 'select count(1) from admin' --batch -s`\" == \"0\"",
-		returns  => [0, 28],
-		require  => Service["nginx"],
+		command	=> "/usr/bin/curl --insecure --data 'salt=${vimbadmin_salt1}&username=${mailadmin_user}&password=${mailadmin_pwd}' https://127.0.0.1:444/auth/setup --max-time 10",
+		onlyif	=> "/usr/bin/test \"`/usr/bin/mysql --raw -uroot $maildb_name -e 'select count(1) from admin' --batch -s`\" == \"0\"",
+		returns	=> [0, 28],
+		require	=> Service["nginx"],
 	}
 }
 
@@ -558,40 +557,40 @@ class restore_maildb_backup {
 
 	if $restore_maildb_backup == "true" {
 		file { "/tmp/domain.csv":
-			ensure=> present,
-			source => "${files}/backup/domain.csv",
+			ensure	=> present,
+			source	=> "${files}/backup/domain.csv",
 		} ->
 		exec { "restore backup: domain":
-			command  => "/usr/bin/mysql -uroot $maildb_name -e \"LOAD DATA INFILE '/tmp/domain.csv' INTO TABLE domain FIELDS TERMINATED BY ',';\"",
-			onlyif   => "/usr/bin/test `/usr/bin/mysql --raw -uroot $maildb_name -e 'select count(1) from domain' --batch -s` == \"0\"",
-			require  => Service["mysql"],
+			command	=> "/usr/bin/mysql -uroot $maildb_name -e \"LOAD DATA INFILE '/tmp/domain.csv' INTO TABLE domain FIELDS TERMINATED BY ',';\"",
+			onlyif	=> "/usr/bin/test `/usr/bin/mysql --raw -uroot $maildb_name -e 'select count(1) from domain' --batch -s` == \"0\"",
+			require	=> Service["mysql"],
 		}
 		file { "/tmp/mailbox.csv":
-			ensure=> present,
-			source => "${files}/backup/mailbox.csv",
+			ensure	=> present,
+			source	=> "${files}/backup/mailbox.csv",
 		} ->
 		exec { "restore backup: mailbox":
-			command  => "/usr/bin/mysql -uroot $maildb_name -e \"LOAD DATA INFILE '/tmp/mailbox.csv' INTO TABLE mailbox FIELDS TERMINATED BY ',';\"",
-			onlyif   => "/usr/bin/test `/usr/bin/mysql --raw -uroot $maildb_name -e 'select count(1) from mailbox' --batch -s` == \"0\"",
-			require  => Service["mysql"],
+			command	=> "/usr/bin/mysql -uroot $maildb_name -e \"LOAD DATA INFILE '/tmp/mailbox.csv' INTO TABLE mailbox FIELDS TERMINATED BY ',';\"",
+			onlyif	=> "/usr/bin/test `/usr/bin/mysql --raw -uroot $maildb_name -e 'select count(1) from mailbox' --batch -s` == \"0\"",
+			require	=> Service["mysql"],
 		}
 		file { "/tmp/alias.csv":
-			ensure=> present,
-			source => "${files}/backup/alias.csv",
+			ensure	=> present,
+			source	=> "${files}/backup/alias.csv",
 		} ->
 		exec { "restore backup: alias":
-			command  => "/usr/bin/mysql -uroot $maildb_name -e \"LOAD DATA INFILE '/tmp/alias.csv' INTO TABLE alias FIELDS TERMINATED BY ',';\"",
-			onlyif   => "/usr/bin/test `/usr/bin/mysql --raw -uroot $maildb_name -e 'select count(1) from alias' --batch -s` == \"0\"",
-			require  => Service["mysql"],
+			command	=> "/usr/bin/mysql -uroot $maildb_name -e \"LOAD DATA INFILE '/tmp/alias.csv' INTO TABLE alias FIELDS TERMINATED BY ',';\"",
+			onlyif	=> "/usr/bin/test `/usr/bin/mysql --raw -uroot $maildb_name -e 'select count(1) from alias' --batch -s` == \"0\"",
+			require	=> Service["mysql"],
 		}
 		file { "/tmp/log.csv":
-			ensure=> present,
-			source => "${files}/backup/log.csv",
+			ensure	=> present,
+			source	=> "${files}/backup/log.csv",
 		} ->
 		exec { "restore backup: log":
-			command  => "/usr/bin/mysql -uroot $maildb_name -e \"LOAD DATA INFILE '/tmp/log.csv' INTO TABLE log FIELDS TERMINATED BY ',';\"",
-			onlyif   => "/usr/bin/test `/usr/bin/mysql --raw -uroot $maildb_name -e 'select count(1) from log' --batch -s` == \"0\"",
-			require  => Service["mysql"],
+			command	=> "/usr/bin/mysql -uroot $maildb_name -e \"LOAD DATA INFILE '/tmp/log.csv' INTO TABLE log FIELDS TERMINATED BY ',';\"",
+			onlyif	=> "/usr/bin/test `/usr/bin/mysql --raw -uroot $maildb_name -e 'select count(1) from log' --batch -s` == \"0\"",
+			require	=> Service["mysql"],
 		}
 	}
 }
@@ -614,157 +613,157 @@ class configure_mail {
 		ensure	=> present,
 		content	=> template("custom/rsyslog-33-dovecot.conf"),
 		require	=> Package["rsyslog"],
-		notify  => Service["rsyslog"],
+		notify	=> Service["rsyslog"],
 	}
 
 	group { "mail":
-		ensure => present,
+		ensure	=> present,
 	}
 	user { "vmail":
-		ensure => present,
-		comment => "Virtual maildir handler",
-		uid => 150,
-		gid => "mail",
-		membership => minimum,
-		shell => "/usr/sbin/nologin",
-		home => "/var/vmail",
-		require => Group["mail"],
+		ensure	=> present,
+		comment	=> "Virtual maildir handler",
+		uid	=> 150,
+		gid	=> "mail",
+		membership	=> minimum,
+		shell	=> "/usr/sbin/nologin",
+		home	=> "/var/vmail",
+		require	=> Group["mail"],
 	}
-    file { '/var/vmail':
-        ensure  => directory,
-        owner   => 'vmail',
-        group   => 'mail',
-        mode    => 770,
+	file { '/var/vmail':
+		ensure	=> directory,
+		owner	=> 'vmail',
+		group	=> 'mail',
+		mode	=> 770,
 		require => User[vmail],
-    }
+	}
 	file { "/etc/dovecot/dovecot-sql.conf.ext":
 		ensure	=> present,
 		content	=> template("custom/dovecot-sql.conf.ext.erb"),
 		require	=> Package["dovecot-core"],
-		notify  => Service["dovecot"],
+		notify	=> Service["dovecot"],
 	}
 	file_line { 'dovecot: disable_plaintext_auth':
-		path  => '/etc/dovecot/conf.d/10-auth.conf',
-		line  => "disable_plaintext_auth = yes",
-		match => '.*disable_plaintext_auth.*=.*$',
-		require => Package["dovecot-core"],
-		notify  => Service["dovecot"],
+		path	=> '/etc/dovecot/conf.d/10-auth.conf',
+		line	=> "disable_plaintext_auth = yes",
+		match	=> '.*disable_plaintext_auth.*=.*$',
+		require	=> Package["dovecot-core"],
+		notify	=> Service["dovecot"],
 	}
 	file_line { 'dovecot auth_mechanisms':
-		path  => '/etc/dovecot/conf.d/10-auth.conf',
-		line  => "auth_mechanisms = plain login",
-		match => '.*auth_mechanisms.*',
-		require => Package["dovecot-core"],
-		notify  => Service["dovecot"],
+		path	=> '/etc/dovecot/conf.d/10-auth.conf',
+		line	=> "auth_mechanisms = plain login",
+		match	=> '.*auth_mechanisms.*',
+		require	=> Package["dovecot-core"],
+		notify	=> Service["dovecot"],
 	}
 	file_line { 'dovecot: disable system':
-		path    => '/etc/dovecot/conf.d/10-auth.conf',
-		line    => "#!include auth-system.conf.ext",
-		match   => '.*include auth-system.conf.ext$',
-		require => Package["dovecot-core"],
-		notify  => Service["dovecot"],
+		path	=> '/etc/dovecot/conf.d/10-auth.conf',
+		line	=> "#!include auth-system.conf.ext",
+		match	=> '.*include auth-system.conf.ext$',
+		require	=> Package["dovecot-core"],
+		notify	=> Service["dovecot"],
 	}
 	file_line { 'dovecot: enable sql':
-		path    => '/etc/dovecot/conf.d/10-auth.conf',
-		line    => "!include auth-sql.conf.ext",
-		match   => '.*include auth-sql.conf.ext$',
-		require => Package["dovecot-core"],
-		notify  => Service["dovecot"],
+		path	=> '/etc/dovecot/conf.d/10-auth.conf',
+		line	=> "!include auth-sql.conf.ext",
+		match	=> '.*include auth-sql.conf.ext$',
+		require	=> Package["dovecot-core"],
+		notify	=> Service["dovecot"],
 	}
 	file_line { 'dovecot: enable master':
-		path    => '/etc/dovecot/conf.d/10-auth.conf',
-		line    => "!include auth-master.conf.ext",
-		match   => '.*include auth-master.conf.ext$',
-		require => Package["dovecot-core"],
-		notify  => Service["dovecot"],
+		path	=> '/etc/dovecot/conf.d/10-auth.conf',
+		line	=> "!include auth-master.conf.ext",
+		match	=> '.*include auth-master.conf.ext$',
+		require	=> Package["dovecot-core"],
+		notify	=> Service["dovecot"],
 	}
 	file_line { 'dovecot: mail_location':
-		path    => '/etc/dovecot/conf.d/10-mail.conf',
-		line    => "mail_location = maildir:/var/vmail/%d/%n",
-		match   => '^mail_location *=.*$',
-		require => Package["dovecot-core"],
-		notify  => Service["dovecot"],
+		path	=> '/etc/dovecot/conf.d/10-mail.conf',
+		line	=> "mail_location = maildir:/var/vmail/%d/%n",
+		match	=> '^mail_location *=.*$',
+		require	=> Package["dovecot-core"],
+		notify	=> Service["dovecot"],
 	}
 	file_line { 'dovecot: mail_uid':
-		path    => '/etc/dovecot/conf.d/10-mail.conf',
-		line    => "mail_uid = vmail",
-		match   => '.*mail_uid.*=.*$',
-		require => Package["dovecot-core"],
-		notify  => Service["dovecot"],
+		path	=> '/etc/dovecot/conf.d/10-mail.conf',
+		line	=> "mail_uid = vmail",
+		match	=> '.*mail_uid.*=.*$',
+		require	=> Package["dovecot-core"],
+		notify	=> Service["dovecot"],
 	}
 	file_line { 'dovecot: mail_gid':
-		path  => '/etc/dovecot/conf.d/10-mail.conf',
-		line  => "mail_gid = mail",
-		match => '.*mail_gid.*=.*$',
-		require => Package["dovecot-core"],
-		notify  => Service["dovecot"],
+		path	=> '/etc/dovecot/conf.d/10-mail.conf',
+		line	=> "mail_gid = mail",
+		match	=> '.*mail_gid.*=.*$',
+		require	=> Package["dovecot-core"],
+		notify	=> Service["dovecot"],
 	}
 	file_line { 'dovecot: first_valid_uid':
-		path  => '/etc/dovecot/conf.d/10-mail.conf',
-		line  => "first_valid_uid = 150",
-		match => '.*first_valid_uid.*=.*$',
-		require => Package["dovecot-core"],
-		notify  => Service["dovecot"],
+		path	=> '/etc/dovecot/conf.d/10-mail.conf',
+		line	=> "first_valid_uid = 150",
+		match	=> '.*first_valid_uid.*=.*$',
+		require	=> Package["dovecot-core"],
+		notify	=> Service["dovecot"],
 	}
 	file_line { 'dovecot: last_valid_uid':
-		path  => '/etc/dovecot/conf.d/10-mail.conf',
-		line  => "last_valid_uid = 150",
-		match => '.*last_valid_uid.*=.*$',
-		require => Package["dovecot-core"],
-		notify  => Service["dovecot"],
+		path	=> '/etc/dovecot/conf.d/10-mail.conf',
+		line	=> "last_valid_uid = 150",
+		match	=> '.*last_valid_uid.*=.*$',
+		require	=> Package["dovecot-core"],
+		notify	=> Service["dovecot"],
 	}
 	file_line { 'dovecot: ssl':
-		path  => '/etc/dovecot/conf.d/10-ssl.conf',
-		line  => "ssl = yes",
-		match => '.*ssl *= *(yes|no)$',
-		require => Package["dovecot-core"],
-		notify  => Service["dovecot"],
+		path	=> '/etc/dovecot/conf.d/10-ssl.conf',
+		line	=> "ssl = yes",
+		match	=> '.*ssl *= *(yes|no)$',
+		require	=> Package["dovecot-core"],
+		notify	=> Service["dovecot"],
 	}
 	file_line { 'dovecot: ssl_cert':
-		path  => '/etc/dovecot/conf.d/10-ssl.conf',
-		line  => "ssl_cert = </etc/ssl/certs/$certificate",
-		match => '.*ssl_cert *=.*$',
-		require => Package["dovecot-core"],
-		notify  => Service["dovecot"],
+		path	=> '/etc/dovecot/conf.d/10-ssl.conf',
+		line	=> "ssl_cert = </etc/ssl/certs/$certificate",
+		match	=> '.*ssl_cert *=.*$',
+		require	=> Package["dovecot-core"],
+		notify	=> Service["dovecot"],
 	}
 	file_line { 'dovecot: ssl_key':
-		path  => '/etc/dovecot/conf.d/10-ssl.conf',
-		line  => "ssl_key = </etc/ssl/private/$certificate_key",
-		match => '.*ssl_key *=.*$',
-		require => Package["dovecot-core"],
-		notify  => Service["dovecot"],
+		path	=> '/etc/dovecot/conf.d/10-ssl.conf',
+		line	=> "ssl_key = </etc/ssl/private/$certificate_key",
+		match	=> '.*ssl_key *=.*$',
+		require	=> Package["dovecot-core"],
+		notify	=> Service["dovecot"],
 	}
 #	file_line { 'dovecot: ssl_ca':
-#		path  => '/etc/dovecot/conf.d/10-ssl.conf',
-#		line  => "ssl_ca = </etc/ssl/certs/ca-bundle.crt",
-#		match => '^[# ]*ssl_ca *=.*$',
-#		require => Package["dovecot-core"],
-#		notify  => Service["dovecot"],
+#		path	=> '/etc/dovecot/conf.d/10-ssl.conf',
+#		line	=> "ssl_ca = </etc/ssl/certs/ca-bundle.crt",
+#		match	=> '^[# ]*ssl_ca *=.*$',
+#		require	=> Package["dovecot-core"],
+#		notify	=> Service["dovecot"],
 #	}
 	file { "/etc/dovecot/conf.d/10-master.conf":
 		ensure	=> present,
 		content	=> template("custom/10-master.conf.erb"),
 		require	=> [ User[vmail], Package["dovecot-core"]],
-		notify  => Service["dovecot"],
+		notify	=> Service["dovecot"],
 	}
 	# Create the admin user (for dovecot as well)
 	exec { "create dovecot admin user":
-		command   => "/usr/bin/htpasswd -b -c -s /etc/dovecot/master-users '${mailadmin_user}' '${mailadmin_pwd}'",
-		logoutput => "on_failure",
-		require   => Package["apache2-utils"],
-		creates   => "/etc/dovecot/master-users",
+		command	=> "/usr/bin/htpasswd -b -c -s /etc/dovecot/master-users '${mailadmin_user}' '${mailadmin_pwd}'",
+		logoutput	=> "on_failure",
+		require	=> Package["apache2-utils"],
+		creates	=> "/etc/dovecot/master-users",
 	}
 
 }
 class chown_dovecot_config {
 	exec {
-		logoutput => "on_failure",
+		logoutput	=> "on_failure",
 	}
 	exec { "chown dovecot config":
-		command     => "/bin/chown -R vmail:dovecot /etc/dovecot",
+		command	=> "/bin/chown -R vmail:dovecot /etc/dovecot",
 	}
 	exec { "chmod dovecot config":
-		command     => "/bin/chmod -R o-rwx /etc/dovecot",
+		command	=> "/bin/chmod -R o-rwx /etc/dovecot",
 	}
 }
 
@@ -772,44 +771,44 @@ class configure_spamav {
 	include config
 	include stdlib
 
-	$maildb_user 			= $config::maildb_user
-	$maildb_pwd 			= $config::maildb_pwd
-	$maildb_name 			= $config::maildb_name
+	$maildb_user			= $config::maildb_user
+	$maildb_pwd			= $config::maildb_pwd
+	$maildb_name			= $config::maildb_name
 
-	$amavis_process_count 	= $config::amavis_process_count
+	$amavis_process_count	= $config::amavis_process_count
 
 	file { "/etc/amavis/conf.d/15-content_filter_mode":
 		ensure	=> present,
 		content	=> template("custom/15-content_filter_mode.erb"),
 		require	=> Package[amavis],
-		notify  => Service["amavis"],
+		notify	=> Service["amavis"],
 	}
 	file_line { 'spamassasin: enable':
-		path  => '/etc/default/spamassassin',
-		line  => "ENABLED=1",
-		match => '^ENABLED=.*$',
-		require => Package["spamassassin"],
-		notify  => Service["spamassassin"],
+		path	=> '/etc/default/spamassassin',
+		line	=> "ENABLED=1",
+		match	=> '^ENABLED=.*$',
+		require	=> Package["spamassassin"],
+		notify	=> Service["spamassassin"],
 	}
 	file_line { 'spamassasin: updates':
-		path  => '/etc/default/spamassassin',
-		line  => "CRON=1",
-		match => '^CRON=.*$',
-		require => Package["spamassassin"],
-		notify  => Service["spamassassin"],
+		path	=> '/etc/default/spamassassin',
+		line	=> "CRON=1",
+		match	=> '^CRON=.*$',
+		require	=> Package["spamassassin"],
+		notify	=> Service["spamassassin"],
 	}
 	file { "/etc/amavis/conf.d/50-user":
 		ensure	=> present,
 		content	=> template("custom/50-user.erb"),
 		require	=> Package[amavis],
-		notify  => Service["amavis"],
+		notify	=> Service["amavis"],
 	}
 	user {'amavis':
-		groups => ['clamav'],
+		groups	=> ['clamav'],
 		require	=> [ Package[amavis], Package[clamav-daemon], ],
 	}
 	user {'clamav':
-		groups => ['amavis'],
+		groups	=> ['amavis'],
 		require	=> [ Package[amavis], Package[clamav-daemon], ],
 	}
 }
@@ -817,68 +816,68 @@ class configure_spamav {
 class configure_postfix {
 	include config
 
-	$maildb_user 			= $config::maildb_user
-	$maildb_pwd 			= $config::maildb_pwd
-	$maildb_name 			= $config::maildb_name
-	$certificate 			= $config::certificate
-	$certificate_key 		= $config::certificate_key
-	$mail_server_name 		= $config::mail_server_name
-	$amavis_process_count 	= $config::amavis_process_count
+	$maildb_user			= $config::maildb_user
+	$maildb_pwd			= $config::maildb_pwd
+	$maildb_name			= $config::maildb_name
+	$certificate			= $config::certificate
+	$certificate_key		= $config::certificate_key
+	$mail_server_name		= $config::mail_server_name
+	$amavis_process_count	= $config::amavis_process_count
 	$message_size_limit		= $config::message_size_limit
 
 	file { "/etc/postfix/mysql_virtual_alias_maps.cf":
-        owner   => 'root',
-        group   => 'root',
-        mode    => 644,
+		owner	=> 'root',
+		group	=> 'root',
+		mode	=> 644,
 		ensure	=> present,
 		content	=> template("custom/mysql_virtual_alias_maps.cf.erb"),
 		require	=> Package[postfix],
-		notify  => Service["postfix"],
+		notify	=> Service["postfix"],
 	}
 	file { "/etc/postfix/mysql_virtual_domains_maps.cf":
-        owner   => 'root',
-        group   => 'root',
-        mode    => 644,
+		owner	=> 'root',
+		group	=> 'root',
+		mode	=> 644,
 		ensure	=> present,
 		content	=> template("custom/mysql_virtual_domains_maps.cf.erb"),
 		require	=> Package[postfix],
-		notify  => Service["postfix"],
+		notify	=> Service["postfix"],
 	}
 	file { "/etc/postfix/mysql_virtual_mailbox_maps.cf":
-        owner   => 'root',
-        group   => 'root',
-        mode    => 644,
+		owner	=> 'root',
+		group	=> 'root',
+		mode	=> 644,
 		ensure	=> present,
 		content	=> template("custom/mysql_virtual_mailbox_maps.cf.erb"),
 		require	=> Package[postfix],
-		notify  => Service["postfix"],
+		notify	=> Service["postfix"],
 	}
 	file { "/etc/postfix/header_checks":
-        owner   => 'root',
-        group   => 'root',
-        mode    => 644,
+		owner	=> 'root',
+		group	=> 'root',
+		mode	=> 644,
 		ensure	=> present,
 		content	=> template("custom/header_checks.erb"),
 		require	=> Package[postfix],
 		notify  => Service["postfix"],
 	}
 	file { "/etc/postfix/master.cf":
-        owner   => 'root',
-        group   => 'root',
-        mode    => 644,
+		owner	=> 'root',
+		group	=> 'root',
+		mode	=> 644,
 		ensure	=> present,
 		content	=> template("custom/master.cf.erb"),
 		require	=> Package[postfix],
-		notify  => Service["postfix"],
+		notify	=> Service["postfix"],
 	}
 	file { "/etc/postfix/main.cf":
-        owner   => 'root',
-        group   => 'root',
-        mode    => 644,
+		owner	=> 'root',
+		group	=> 'root',
+		mode	=> 644,
 		ensure	=> present,
 		content	=> template("custom/main.cf.erb"),
 		require	=> Package[postfix],
-		notify  => Service["postfix"],
+		notify	=> Service["postfix"],
 	}
 
 }
@@ -906,28 +905,24 @@ class rainloop {
     # Create Directories
 	file { [
 		"/var/www",
-    	"/var/www/rainloop/",
-        "/var/www/rainloop/logs",
+		"/var/www/rainloop/",
+		"/var/www/rainloop/logs",
 		"/var/www/rainloop/www" ] :
 		ensure => directory,
-		before => File[
-			"/var/www/rainloop/www/installer.php"
-		]
+		before => File[	"/var/www/rainloop/www/installer.php" ]
 	}
 
 	file { "/var/www/rainloop/www/installer.php":
 		ensure	=> present,
 		content	=> template("custom/installer.php"),
-		before => Exec[
-			"install-rainloop"
-		]
+		before	=> Exec[ "install-rainloop" ]
 	}
 
 	exec { "install-rainloop":
 		onlyif	=> "/usr/bin/test ! -d /var/www/rainloop/www/rainloop",
-		cwd => "/var/www/rainloop/www",
-		command => "/usr/bin/php installer.php",
-		logoutput => "on_failure",
+		cwd	=> "/var/www/rainloop/www",
+		command	=> "/usr/bin/php installer.php",
+		logoutput	=> "on_failure",
 	}
 
 	#file_line { 'rainloop-change-password':
@@ -969,17 +964,17 @@ class backup_user {
 		ensure		=> present,
 		comment		=> "(Mail) Backup user",
 		membership	=> minimum,
-		gid 		=> 'backup',
+		gid		=> 'backup',
 		shell		=> "/bin/bash",
 		home		=> "/home/backup",
 		require		=> [Group["mail"], Group["backup"]],
 	}
-    file { '/home/backup':
-        ensure  => directory,
-        owner   => 'backup',
-        group   => 'backup',
-        mode    => 770,
-		require => User[backup],
+	file { '/home/backup':
+		ensure	=> directory,
+		owner	=> 'backup',
+		group	=> 'backup',
+		mode	=> 770,
+		require	=> User[backup],
     }
 
 	if $backup_user_allowed_key == "" {
@@ -994,35 +989,35 @@ class backup_user {
 		ssh_keygen { 'backup': }
 		->
 		file { "/home/backup/.ssh/authorized_keys":
-			ensure       => present,
-			owner        => 'backup',
-			group        => 'backup',
-			mode         => 600,
+			ensure	=> present,
+			owner	=> 'backup',
+			group	=> 'backup',
+			mode	=> 600,
 			content		=> $backup_user_allowed_key
 		}
 	}
 
 	file { "/etc/sudoers.d/backup-user":
 		ensure		=> present,
-		owner 		=> 'root',
-		group 		=> 'root',
-		mode  		=> 440,
+		owner		=> 'root',
+		group		=> 'root',
+		mode		=> 440,
 		content		=> 'backup ALL=(vmail:vmail) NOPASSWD:ALL',
 		require		=> Package["sudo"]
 	}
 	file { "/home/backup/backup-to-this.sh":
 		ensure		=> present,
-		owner 		=> 'backup',
-		group 		=> 'backup',
-		mode  		=> 755,
+		owner		=> 'backup',
+		group		=> 'backup',
+		mode		=> 755,
 		content		=> template("custom/backup-to-this.sh.erb"),
 		require		=> File["/home/backup"]
 	}
 	file { "/home/backup/.my.cnf":
 		ensure		=> present,
-		owner 		=> 'backup',
-		group 		=> 'backup',
-		mode  		=> 600,
+		owner		=> 'backup',
+		group		=> 'backup',
+		mode		=> 600,
 		content		=> template("custom/backup-my.cnf.erb"),
 		require		=> File["/home/backup"]
 	}
