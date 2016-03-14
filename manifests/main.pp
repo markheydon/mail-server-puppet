@@ -3,14 +3,19 @@ class config {
 	$mail_server_name = "MY.FQDN.COM"
 	$web_server_name = "mailserver.MY.FQDN.COM"
 
-	$generate_certificate = "true"
+	$generate_certificate = "letsencrypt"
 
 	$files = "/root/mail-server-puppet/files"
 
-	if $generate_certificate == "true" {
+	if ( $generate_certificate == "true" ) {
 		$certificate = "ssl-cert-snakeoil.pem"
 		$certificate_key = "ssl-cert-snakeoil.key"
-	} else {
+	}
+	elsif ( $generate_certificate == "letsencrypt" ) {
+		$certificate = "fullchain.pem"
+		$certificate_key = "privkey.pem"
+	}
+	else {
 		$certificate = "my-seed-cert.pem"
 		$certificate_key = "my-seed-cert.key"
 	}
@@ -46,15 +51,6 @@ class config {
 	$message_size_limit = 10240000
 
 	$backup_user_allowed_key = ""
-}
-
-class { ::letsencrypt:
-	email	=> 'admin@MY.FQDN.COM'
-}
-
-letsencrypt::certonly { 'MY.FQDN.COM':
-  domains         => ['MY.FQDN.COM', 'mailserver.MY.FQDN.COM'],
-  plugin          => 'standalone',
 }
 
 class packages {
@@ -257,14 +253,6 @@ class config_host {
 		ip           => '127.0.0.1',
 		host_aliases => "$alias",
 	}
-
-#	file_line { "ssh: disable root lgin":
-#		path    => '/etc/php5/fpm/php.ini',
-#		line    => 'set PermitRootLogin no',
-#		match   => '^.*set PermitRootLogin .*$',
-#		notify  => Service["ssh"],
-#		require => Package['openssh-server'],
-#	}
 }
 
 class config_firewall {
@@ -341,6 +329,8 @@ class config_php {
 
 class make_certificate {
 	include config
+	include $::letsencrypt
+
 	$generate_certificate = $config::generate_certificate
 	$files = $config::files
 	if $generate_certificate == "true" {
@@ -350,7 +340,40 @@ class make_certificate {
 			require		=> Package["ssl-cert"],
 			logoutput	=> "on_failure",
 		}
-	} else {
+	}
+	elsif $generate_certificate == "letsencrypt" {
+                $certificate            = $config::certificate
+                $certificate_key        = $config::certificate_key
+		file { "/tmp/letsencrypt":
+			ensure  => directory,
+		}
+		class { ::letsencrypt:
+			config => {
+ 				email => "admin@${config::mail_server_name}",
+			}
+		}
+#		letsencrypt::certonly { 'foo.example.com': }
+		letsencrypt::certonly { "${config::mail_server_name}":
+				domains => ["${config::mail_server_name}", "${config::web_server_name}"],
+			
+				#webroot_paths quantity must be same number of domains
+				#webroot_paths   => ['/tmp/letsencrypt', '/tmp/letsencrypt'],
+				plugin  => 'standalone',
+		} ->
+		
+		
+	        file { "/etc/ssl/certs/$certificate":
+                        ensure  => link,
+			links	=> follow,
+                        source  => "/etc/letsencrypt/live/${config::mail_server_name}/$certificate",
+                }
+                file { "/etc/ssl/private/$certificate_key":
+                        ensure  => link,
+			links	=> follow,
+                        source  => "/etc/letsencrypt/live/${config::mail_server_name}/$certificate_key",
+                }	
+	}
+	else {
 		$certificate		= $config::certificate
 		$certificate_key	= $config::certificate_key
 		file { "/etc/ssl/certs/$certificate":
@@ -375,7 +398,7 @@ class nginx_config {
 
 	file { "/etc/nginx/sites-available/${web_server_name}":
 		ensure	=> present,
-		content	=> template("custom/nginx.default.erb"),
+		content	=> template("custom/nginx.web_server_name.erb"),
 		require	=> Package["nginx"],
 		notify	=> Service["nginx"],
 	}->
@@ -543,9 +566,9 @@ class configure_webadmin {
 		cwd	=> '/usr/local/vimbadmin',
 		logoutput	=> 'true'
 	} ->
-	file { "/etc/nginx/sites-available/mailadmin":
+	file { "/etc/nginx/sites-available/${mail_server_name}":
 		ensure	=> present,
-		content	=> template("custom/nginx-mailadmin.erb"),
+		content	=> template("custom/nginx.mail_server_name.erb"),
 		require	=> Package["nginx"],
 		notify	=> Service["nginx"],
 	} ->
@@ -557,7 +580,7 @@ class configure_webadmin {
 	exec { "force restart nginx":
 		command	=> "/etc/init.d/nginx reload",
 		refreshonly	=> true,
-		require	=> Service[[nginx]],
+		require	=> Service["nginx"],
 	} ->
 	exec { "configure admin":
 		command	=> "/usr/bin/curl --insecure --data 'salt=${vimbadmin_salt1}&username=${mailadmin_user}&password=${mailadmin_pwd}' https://127.0.0.1:444/auth/setup --max-time 10",
