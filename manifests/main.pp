@@ -300,32 +300,32 @@ class config_php {
 
 	file_line { 'fix_pathinfo php security':
 		path	=> '/etc/php5/fpm/php.ini',
-		line	=> 'fix_pathinfo=0',
+		line	=> 'cgi.fix_pathinfo = 0',
 		match	=> '^.*fix_pathinfo=.*$',
 		require	=> Package['php5-fpm'],
 	}
 	file_line { 'increase file upload size 1':
 		path	=> '/etc/php5/fpm/php.ini',
 		line	=> 'upload_max_filesize = 20M',
-		match	=> '^.*upload_max_filesize=.*$',
+		match	=> '^.*upload_max_filesize =.*$',
 		require	=> Package['php5-fpm'],
 	}
 	file_line { 'increase file upload size 2':
 		path	=> '/etc/php5/fpm/php.ini',
 		line	=> 'post_max_size = 20M',
-		match	=> '^.*post_max_size=.*$',
+		match	=> '^.*post_max_size =.*$',
 		require	=> Package['php5-fpm'],
 	}
 	file_line { 'increase file memory':
 		path	=> '/etc/php5/fpm/php.ini',
 		line	=> 'memory_limit = 256M',
-		match	=> '^.*memory_limit=.*$',
+		match	=> '^.*memory_limit =.*$',
 		require	=> Package['php5-fpm'],
 	}
 	file_line { 'increase execution time':
 		path	=> '/etc/php5/fpm/php.ini',
 		line	=> 'max_execution_time = 180',
-		match	=> '^.*max_execution_time=.*$',
+		match	=> '^.*max_execution_time =.*$',
 		require	=> Package['php5-fpm'],
 	}
 }
@@ -921,20 +921,22 @@ class rainloop {
 		ensure => directory,
 		before => File[	"/var/www/rainloop/www/installer.php" ]
 	}
-
+        exec { "download_rainloop":
+                command => "/usr/bin/curl -sS -O http://repository.rainloop.net/installer.php > /var/www/rainloop/www/installer.php",
+                creates => "/tmp/composer.phar",
+                require => Package['php5-fpm'],
+                cwd     => '/tmp',
+        } ->
 	file { "/var/www/rainloop/www/installer.php":
 		ensure	=> present,
-		content	=> template("custom/installer.php"),
 		before	=> Exec[ "install-rainloop" ]
 	}
-
 	exec { "install-rainloop":
 		onlyif	=> "/usr/bin/test ! -d /var/www/rainloop/www/rainloop",
 		cwd	=> "/var/www/rainloop/www",
 		command	=> "/usr/bin/php installer.php",
 		logoutput	=> "on_failure",
 	}
-
 	#file_line { 'rainloop-change-password':
 	#	path  => '/etc/default/spamassassin',
 	#	line  => "ENABLED=1",
@@ -1041,13 +1043,10 @@ include services
 include nginx_config
 include configure_spamav
 include configure_postfix
-
 #include config_firewall
-
 include config_php
 include rainloop
 include ajenti
-
 include backup_user
 
 class {'configure_maildb':}
