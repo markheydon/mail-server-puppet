@@ -1,7 +1,7 @@
 
 class config {
-	$mail_server_name = "MY.FQDN.COM"
-	$web_server_name = "mailserver.MY.FQDN.COM"
+ 	$mail_server_name = "MY.FQDN.COM"
+  	$web_server_name = "mailserver.MY.FQDN.COM"
 
 	$generate_certificate = "letsencrypt"
 
@@ -342,17 +342,21 @@ class make_certificate {
 		}
 	}
 	elsif $generate_certificate == "letsencrypt" {
-                $certificate            = $config::certificate
-                $certificate_key        = $config::certificate_key
+                $certificate		= $config::certificate
+                $certificate_key	= $config::certificate_key
 		file { "/tmp/letsencrypt":
 			ensure  => directory,
-		}
+		} ->
+		service { 'nginx':
+ 			ensure	=> stopped,
+			enable	=> false,
+			hasstatus	=> true,
+		} ->
 		class { ::letsencrypt:
 			config => {
  				email => "admin@${config::mail_server_name}",
 			}
 		}
-#		letsencrypt::certonly { 'foo.example.com': }
 		letsencrypt::certonly { "${config::mail_server_name}":
 				domains => ["${config::mail_server_name}", "${config::web_server_name}"],
 			
@@ -361,17 +365,21 @@ class make_certificate {
 				plugin  => 'standalone',
 		} ->
 		
-		
 	        file { "/etc/ssl/certs/$certificate":
                         ensure  => link,
 			links	=> follow,
                         source  => "/etc/letsencrypt/live/${config::mail_server_name}/$certificate",
-                }
+                } ->
                 file { "/etc/ssl/private/$certificate_key":
                         ensure  => link,
 			links	=> follow,
                         source  => "/etc/letsencrypt/live/${config::mail_server_name}/$certificate_key",
-                }	
+                } ->	
+		service { 'nginx':
+ 			ensure	=> started,
+			enable	=> false,
+			hasstatus	=> true,
+		}
 	}
 	else {
 		$certificate		= $config::certificate
@@ -416,10 +424,6 @@ class configure_maildb {
 	$maildb_user 	= $config::maildb_user
 	$maildb_pwd 	= $config::maildb_pwd
 	$maildb_name 	= $config::maildb_name
-
-	Exec {
-		logoutput => "on_failure",
-	}
 
 	exec { "create-${maildb_name}-db":
 		unless  => "/usr/bin/mysql -uroot ${maildb_name}",
@@ -593,9 +597,9 @@ class configure_webadmin {
 class restore_maildb_backup {
 	include config
 
-	$files 					= $config::files
+	$files 			= $config::files
 	$restore_maildb_backup 	= $config::restore_maildb_backup
-	$maildb_name 			= $config::maildb_name
+	$maildb_name 		= $config::maildb_name
 
 	if $restore_maildb_backup == "true" {
 		file { "/tmp/domain.csv":
@@ -951,13 +955,13 @@ class rainloop {
 		"/var/www/rainloop/logs",
 		"/var/www/rainloop/www" ] :
 		ensure => directory,
-		before => File[	"/var/www/rainloop/www/installer.php" ]
-	}
+		before => Exec[	"download_rainloop" ]
+	} ->
         exec { "download_rainloop":
                 command => "/usr/bin/curl -sS -O http://repository.rainloop.net/installer.php > /var/www/rainloop/www/installer.php",
-                creates => "/tmp/composer.phar",
+                creates => "/var/www/rainloop/www/installer.php",
                 require => Package['php5-fpm'],
-                cwd     => '/tmp',
+                cwd     => '/var/www/rainloop/www/',
         } ->
 	file { "/var/www/rainloop/www/installer.php":
 		ensure	=> present,
