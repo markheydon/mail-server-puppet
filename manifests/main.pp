@@ -963,6 +963,7 @@ class rainloop {
 		cwd	=> "/var/www/rainloop/www",
 		command	=> "/usr/bin/php installer.php",
 		logoutput	=> "on_failure",
+		require => [ Package['php5-fpm'], Package['php5-curl'], Package['php5-mcrypt'], Package['php5-mysql'], ],
 	}
 	#file_line { 'rainloop-change-password':
 	#	path  => '/etc/default/spamassassin',
