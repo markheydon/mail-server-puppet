@@ -134,7 +134,17 @@ class packages {
 	package { "opendkim-tools":		ensure => present }
 
 	# ajenti
+	package { "build-essential":		ensure => present }
 	package { "python-pip":			ensure => present }
+	package { "python-dev":			ensure => present }
+	package { "python-dbus":		ensure => present }
+	package { "python-lxml":		ensure => present }
+	package { "libffi-dev":			ensure => present }
+	package { "libssl-dev":			ensure => present }
+	package { "libjpeg-dev":		ensure => present }
+	package { "libpng-dev":			ensure => present }
+	package { "uuid-dev":			ensure => present }
+	package { "gcc":			ensure => present }
 
 	# Update before
 	exec { "apt-update":
@@ -433,7 +443,7 @@ class configure_webadmin {
 		mode	=> '0755',
 	} ->
 	exec { "clone_ViMbAdmin":
-		command	=> "/usr/bin/git clone https://github.com/opensolutions/ViMbAdmin.git vimbadmin",
+		command	=> "/usr/bin/git clone https://github.com/bandwith/ViMbAdmin.git vimbadmin",
 		creates	=> "/usr/local/vimbadmin",
 		cwd	=> '/usr/local',
 		require	=> [ Package['git-core'], File["/usr/local/bin/composer.phar"], ],
@@ -755,15 +765,15 @@ class configure_mail {
 	}
 
 }
+
 class chown_dovecot_config {
-	exec {
+	exec { "chown dovecot config":
+		command		=> "/bin/chown -R vmail:dovecot /etc/dovecot",
 		logoutput	=> "on_failure",
 	}
-	exec { "chown dovecot config":
-		command	=> "/bin/chown -R vmail:dovecot /etc/dovecot",
-	}
 	exec { "chmod dovecot config":
-		command	=> "/bin/chmod -R o-rwx /etc/dovecot",
+		command		=> "/bin/chmod -R o-rwx /etc/dovecot",
+		logoutput       => "on_failure",
 	}
 }
 
@@ -902,7 +912,7 @@ class rainloop {
 		logoutput => "on_failure",
 	}
 
-    # Create Directories
+	# Create Directories
 	file { [
 		"/var/www",
 		"/var/www/rainloop/",
@@ -943,7 +953,7 @@ class ajenti {
 	exec { "install-ajenti":
 		onlyif	=> "/usr/bin/test ! -d /etc/ajenti",
 		cwd => "/root",
-		command => "/usr/bin/wget -O- https://raw.githubusercontent.com/ajenti/ajenti/master/scripts/install.sh | sudo sh",
+		command => "/usr/bin/wget -O- https://raw.githubusercontent.com/ajenti/ajenti/master/scripts/install.sh | sh",
 		logoutput => "on_failure",
 	}
 }
