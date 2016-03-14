@@ -48,6 +48,15 @@ class config {
 	$backup_user_allowed_key = ""
 }
 
+class { ::letsencrypt:
+	email	=> 'admin@MY.FQDN.COM'
+}
+
+letsencrypt::certonly { 'MY.FQDN.COM':
+  domains         => ['MY.FQDN.COM', 'mailserver.MY.FQDN.COM'],
+  plugin          => 'standalone',
+}
+
 class packages {
 
 	# nginx (www)

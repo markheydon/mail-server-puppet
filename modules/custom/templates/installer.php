@@ -1,9 +1,8 @@
+#!/usr/bin/env php
 <?php
 
 define('INSTALLER_ROOT_PATH', rtrim(dirname(__FILE__), '\\/').'/');
 define('INSTALLER_REPO_CORE', 'http://repository.rainloop.net/v2/webmail/rainloop-latest.zip');
-#define('INSTALLER_REPO_CORE', 'https://github.com/RainLoop/rainloop-webmail/archive/master.zip');
-
 define('INSTALLER_REPO_SPEC', 'http://repository.rainloop.net/spec/');
 define('INSTALLER_RND', md5(microtime(true)));
 
@@ -41,7 +40,6 @@ if (!class_exists('PclZip'))
 out('Installing package ...');
 $oArchive = new PclZip(INSTALLER_ROOT_PATH.INSTALLER_RND.'/'.INSTALLER_RND.'.rlp');
 $bResult = 0 !== $oArchive->extract(PCLZIP_OPT_PATH, INSTALLER_ROOT_PATH);
-#$bResult = 0 !== $oArchive->extract(PCLZIP_OPT_PATH, INSTALLER_ROOT_PATH, PCLZIP_OPT_REMOVE_PATH, 'rainloop-webmail-master');
 if (
 	!$bResult ||
 	!file_exists(INSTALLER_ROOT_PATH.'index.php') ||
