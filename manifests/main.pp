@@ -2,7 +2,7 @@
 class config {
 	$domain = "DOMAIN.COM"
  	$mail_server_name = "host.${domain}"
-  	$web_server_name = "webmail.${domain}""
+  	$web_server_name = "webmail.${domain}"
 
 	$generate_certificate = "letsencrypt"
 
