@@ -349,7 +349,11 @@ class make_certificate {
 		} ->
 		class { ::letsencrypt:
 			config => {
- 				email => "admin@${config::mail_server_name}",
+ 				email	=> "admin@${config::mail_server_name}",
+				#staging
+				server	=> 'https://acme-staging.api.letsencrypt.org/directory',
+				#production
+				#server	=> 'https://acme-v01.api.letsencrypt.org/directory',
 			}
 		}
 		letsencrypt::certonly { "${config::mail_server_name}":
