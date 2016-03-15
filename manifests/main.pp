@@ -1,7 +1,8 @@
 
 class config {
- 	$mail_server_name = "MY.FQDN.COM"
-  	$web_server_name = "mailserver.MY.FQDN.COM"
+	$domain = "DOMAIN.COM"
+ 	$mail_server_name = "host.${domain}"
+  	$web_server_name = "webmail.${domain}""
 
 	$generate_certificate = "letsencrypt"
 
@@ -150,6 +151,20 @@ class packages {
 	package { "libpng-dev":			ensure => present }
 	package { "uuid-dev":			ensure => present }
 	package { "gcc":			ensure => present }
+
+	## letsencrypt
+	## duplicate entries are commented
+	#package { "python":			ensure => present }
+	#package { "python-dev":		ensure => present }
+	package { "virtualenv":			ensure => present }
+	package { "python-virtualenv":		ensure => present }
+	#package { "gcc":			ensure => present }
+	package { "dialog":			ensure => present }
+	package { "libaugeas0":			ensure => present }
+	package { "augeas-lenses":		ensure => present }
+	#package { "libssl-dev":		ensure => present }
+	#package { "libffi-dev":		ensure => present }
+	package { "ca-certificates":		ensure => present }
 
 	# Update before
 	exec { "apt-update":
