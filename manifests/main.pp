@@ -365,6 +365,7 @@ class make_certificate {
 
 		file { "/tmp/letsencrypt":
 			ensure  => directory,
+			require => Class["packages"]
 		} ->
 		class { ::letsencrypt:
 			config => {
