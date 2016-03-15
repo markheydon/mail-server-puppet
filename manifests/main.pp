@@ -348,6 +348,7 @@ class config_php {
 class make_certificate {
 	include config
 	include $::letsencrypt
+	include packages
 
 	$generate_certificate = $config::generate_certificate
 	$files = $config::files
@@ -1086,8 +1087,8 @@ class backup_user {
 
 include config_host
 include swap
-include make_certificate
 include packages
+include make_certificate
 include services
 include nginx_config
 include configure_spamav
@@ -1098,6 +1099,7 @@ include rainloop
 #include ajenti
 include backup_user
 
+Class['packages']->Class['make_certificate']->Class['nginx_config']->Class['services']
 class {'configure_maildb':}
 ->
 class {'configure_webadmin':}
