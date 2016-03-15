@@ -1085,6 +1085,8 @@ class backup_user {
 	}
 }
 
+Class['packages']->Class['make_certificate']->Class['nginx_config']->Class['services']
+
 include config_host
 include swap
 include packages
@@ -1099,7 +1101,6 @@ include rainloop
 #include ajenti
 include backup_user
 
-Class['packages']->Class['make_certificate']->Class['nginx_config']->Class['services']
 class {'configure_maildb':}
 ->
 class {'configure_webadmin':}
