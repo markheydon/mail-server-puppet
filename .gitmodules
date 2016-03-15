@@ -13,3 +13,6 @@
 [submodule "modules/ssh_keygen"]
 	path = modules/ssh_keygen
 	url = https://github.com/maestrodev/puppet-ssh_keygen.git
+[submodule "modules/apt"]
+	path = modules/apt
+	url = https://github.com/puppetlabs/puppetlabs-apt.git

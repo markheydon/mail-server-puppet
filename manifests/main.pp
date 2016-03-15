@@ -384,7 +384,6 @@ class make_certificate {
 				#webroot_paths quantity must be same number of domains
 				#webroot_paths   => ['/tmp/letsencrypt', '/tmp/letsencrypt'],
 				plugin  => 'standalone',
-				before => Service["nginx"],
 		} ->
 		
 	        file { "/etc/ssl/certs/$certificate":
@@ -1089,7 +1088,7 @@ class backup_user {
 	}
 }
 
-Class['packages']->Class['make_certificate']->Class['nginx_config']->Class['services']
+Class['apt']->Class['packages']->Class['make_certificate']->Class['nginx_config']->Class['services']
 
 include config_host
 include swap
@@ -1104,6 +1103,21 @@ include config_php
 include rainloop
 #include ajenti
 include backup_user
+
+include apt
+
+class { 'apt::backports':
+  pin => 500,
+}
+apt::source { 'puppetlabs':
+  location => 'http://apt.puppetlabs.com',
+  repos    => 'main',
+  key      => {
+    'id'     => '47B320EB4C7C375AA9DAE1A01054B7A24BD6EC30',
+    'server' => 'pgp.mit.edu',
+  },
+}
+
 
 class {'configure_maildb':}
 ->
