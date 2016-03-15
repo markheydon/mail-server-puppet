@@ -376,8 +376,10 @@ class make_certificate {
 			config => {
  				email	=> "admin@${config::mail_server_name}",
 				server	=> "https://acme-${config::cert_type}.api.letsencrypt.org/directory",
-			}
-		} 
+			},
+			install_method => 'package',
+			configure_epel => false,
+		} ->
 		letsencrypt::certonly { "${config::mail_server_name}":
 				domains => ["${config::mail_server_name}", "${config::web_server_name}"],
 			
