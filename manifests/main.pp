@@ -364,6 +364,10 @@ class make_certificate {
                 $certificate		= $config::certificate
                 $certificate_key	= $config::certificate_key
 
+		exec { "stop nginx":
+			command => '/usr/sbin/service nginx stop',
+			onlyif  => '/usr/sbin/service nginx status',
+		} ->
 		file { "/tmp/letsencrypt":
 			ensure  => directory,
 			require => Class["packages"]
