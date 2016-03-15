@@ -6,6 +6,9 @@ class config {
 
 	$generate_certificate = "letsencrypt"
 
+	## staging or v01
+	$cert_type = "staging"
+
 	$files = "/root/mail-server-puppet/files"
 
 	if ( $generate_certificate == "true" ) {
@@ -359,18 +362,16 @@ class make_certificate {
 	elsif $generate_certificate == "letsencrypt" {
                 $certificate		= $config::certificate
                 $certificate_key	= $config::certificate_key
+
 		file { "/tmp/letsencrypt":
 			ensure  => directory,
 		} ->
 		class { ::letsencrypt:
 			config => {
  				email	=> "admin@${config::mail_server_name}",
-				#staging
-				server	=> 'https://acme-staging.api.letsencrypt.org/directory',
-				#production
-				#server	=> 'https://acme-v01.api.letsencrypt.org/directory',
+				server	=> "https://acme-${config::cert_type}.api.letsencrypt.org/directory",
 			}
-		}
+		} 
 		letsencrypt::certonly { "${config::mail_server_name}":
 				domains => ["${config::mail_server_name}", "${config::web_server_name}"],
 			
