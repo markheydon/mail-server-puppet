@@ -1093,7 +1093,7 @@ include configure_postfix
 #include config_firewall
 include config_php
 include rainloop
-include ajenti
+#include ajenti
 include backup_user
 
 class {'configure_maildb':}
