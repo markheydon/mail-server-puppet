@@ -497,7 +497,7 @@ class configure_webadmin {
 		mode	=> '0755',
 	} ->
 	exec { "clone_ViMbAdmin":
-		command	=> "/usr/bin/git clone https://github.com/bandwith/ViMbAdmin.git vimbadmin",
+		command	=> "/usr/bin/git clone https://github.com/opensolutions/ViMbAdmin.git vimbadmin",
 		creates	=> "/usr/local/vimbadmin",
 		cwd	=> '/usr/local',
 		require	=> [ Package['git-core'], File["/usr/local/bin/composer.phar"], ],
