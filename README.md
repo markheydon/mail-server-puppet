@@ -1,4 +1,4 @@
-# Mailserver for Ubuntu 14.04 LTS
+# Mailserver for Ubuntu 14.04 LTS or Debian
 
 This project builds on the excellent standalone puppet installation script from [mickem / mail-server-puppet](https://github.com/mickem/mail-server-puppet), and fork [ksemel / mail-server-puppet](https://github.com/ksemel/mail-server-puppet). The goal being to have a fully functioning, complete mail server with admin UI, webmail, IMAP/POP3 access solution up and running quickly and easily.
 
@@ -18,15 +18,12 @@ See the [Quick Start](https://github.com/mhcg/mail-server-puppet/wiki/Quick-Star
 
 See the [Quick Start](https://github.com/mhcg/mail-server-puppet/wiki/Quick-Start) page for initial setup details
 
-## Contributing
-
-1. Fork it!
-2. Create your feature branch: `git checkout -b my-new-feature`
-3. Commit your changes: `git commit -am 'Add some feature'`
-4. Push to the branch: `git push origin my-new-feature`
-5. Submit a pull request :D
-
 ## History
+
+### 1.1 (2016-03-15)
+
+* Initial LetsEncrypt support. Uses internal webserver for validation. 
+* TODO: Add LetsEncrypt renewal without killing nginx.
 
 ### 1.0 (2015-02-17)
 
