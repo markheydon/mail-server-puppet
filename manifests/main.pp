@@ -7,7 +7,7 @@ class config {
 	$generate_certificate = "letsencrypt"
 
 	## staging or v01
-	$cert_type = "staging"
+	$cert_type = "v01"
 
 	$files = "/root/mail-server-puppet/files"
 
@@ -794,6 +794,13 @@ class configure_mail {
 		path	=> '/etc/dovecot/conf.d/10-ssl.conf',
 		line	=> "ssl_key = </etc/ssl/private/$certificate_key",
 		match	=> '.*ssl_key *=.*$',
+		require	=> Package["dovecot-core"],
+		notify	=> Service["dovecot"],
+	}
+	file_line { 'dovecot: ssl_dh_size':
+		path	=> '/etc/dovecot/conf.d/10-ssl.conf',
+		line	=> "ssl_dh_parameters_length = 2048",
+		match	=> '.*ssl_dh_parameters_length *=.*$',
 		require	=> Package["dovecot-core"],
 		notify	=> Service["dovecot"],
 	}
